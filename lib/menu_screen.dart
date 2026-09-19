@@ -60,7 +60,8 @@ class _MenuScreenState extends State<MenuScreen> {
                 child: ListTile(
                   onTap: () => _cycle(c),
                   leading: CircleAvatar(backgroundColor: c.color),
-                  title: Text(c.label, style: const TextStyle(fontWeight: FontWeight.bold)),
+                  title: Text(c.label,
+                      style: const TextStyle(fontWeight: FontWeight.bold)),
                   trailing: Chip(label: Text(_label(v))),
                 ),
               );
@@ -81,11 +82,13 @@ class _MenuScreenState extends State<MenuScreen> {
                         if (v != null) seats[k] = v;
                       });
                       Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => GameScreen(seats: seats)),
+                        MaterialPageRoute(
+                            builder: (_) => GameScreen(seats: seats)),
                       );
                     }
                   : null,
-              style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16)),
+              style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16)),
               child: const Text('ابدأ اللعبة', style: TextStyle(fontSize: 18)),
             ),
           ],

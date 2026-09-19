@@ -74,7 +74,8 @@ class _GameScreenState extends State<GameScreen> {
         movable = opts;
       });
       if (opts.isEmpty) {
-        setState(() => message = '${currentPlayer.color.label} رمى $dice — لا توجد نقلة ممكنة');
+        setState(() => message =
+            '${currentPlayer.color.label} رمى $dice — لا توجد نقلة ممكنة');
         Future.delayed(const Duration(milliseconds: 700), () {
           if (!mounted) return;
           _nextTurn(extraTurn: false);
@@ -94,15 +95,39 @@ class _GameScreenState extends State<GameScreen> {
           _performMove(opts.first, dice);
         });
       } else {
-        setState(() => message = '${currentPlayer.color.label} رمى $dice — اختر مهرة للتحريك');
+        setState(() => message =
+            '${currentPlayer.color.label} رمى $dice — اختر مهرة للتحريك');
       }
     });
   }
 
-  void _performMove(LudoToken token, int dice) {
+  Future<void> _performMove(LudoToken token, int dice) async {
+    movable = [];
+
+    final startStep = token.step;
+    final targetStep = engine.destinationStep(token, dice);
+
+    if (token.inBase) {
+      token.step = targetStep;
+      if (mounted) setState(() {});
+      await Future.delayed(const Duration(milliseconds: 140));
+    } else {
+      for (var step = startStep + 1; step <= targetStep; step++) {
+        token.step = step;
+        if (mounted) setState(() {});
+        await Future.delayed(const Duration(milliseconds: 120));
+      }
+    }
+
+    if (!mounted) return;
+
+    // The step-by-step movement above is only the visual animation.
+    // Restore the original logical state before applying the real move
+    // through the rules engine exactly once.
+    token.step = startStep;
     final result = engine.applyMove(token, dice);
+
     setState(() {
-      movable = [];
       if (result.captured.isNotEmpty) {
         message = '${currentPlayer.color.label} أكل مهرة! 🎉';
       } else if (token.finished) {
@@ -121,10 +146,10 @@ class _GameScreenState extends State<GameScreen> {
     }
 
     final extra = dice == 6;
-    Future.delayed(const Duration(milliseconds: 500), () {
-      if (!mounted) return;
-      _nextTurn(extraTurn: extra);
-    });
+    await Future.delayed(const Duration(milliseconds: 500));
+
+    if (!mounted) return;
+    _nextTurn(extraTurn: extra);
   }
 
   void _onTokenTap(LudoToken token) {
@@ -152,18 +177,23 @@ class _GameScreenState extends State<GameScreen> {
                       decoration: BoxDecoration(
                         color: p.color.color.withOpacity(isTurn ? 0.85 : 0.25),
                         borderRadius: BorderRadius.circular(8),
-                        border: isTurn ? Border.all(color: Colors.black, width: 2) : null,
+                        border: isTurn
+                            ? Border.all(color: Colors.black, width: 2)
+                            : null,
                       ),
                       child: Column(
                         children: [
                           Text(p.color.label,
                               style: TextStyle(
                                   fontWeight: FontWeight.bold,
-                                  color: isTurn ? Colors.white : Colors.black87)),
+                                  color:
+                                      isTurn ? Colors.white : Colors.black87)),
                           Text(p.isAI ? 'كمبيوتر' : 'لاعب',
                               style: TextStyle(
                                   fontSize: 11,
-                                  color: isTurn ? Colors.white70 : Colors.black54)),
+                                  color: isTurn
+                                      ? Colors.white70
+                                      : Colors.black54)),
                         ],
                       ),
                     ),
@@ -173,8 +203,10 @@ class _GameScreenState extends State<GameScreen> {
             ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Text(message, textAlign: TextAlign.center,
-                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+              child: Text(message,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                      fontSize: 15, fontWeight: FontWeight.w600)),
             ),
             const SizedBox(height: 8),
             Expanded(
@@ -195,13 +227,19 @@ class _GameScreenState extends State<GameScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   ElevatedButton.icon(
-                    onPressed: (!gameOver && !currentPlayer.isAI && lastDice == null && !rolling)
+                    onPressed: (!gameOver &&
+                            !currentPlayer.isAI &&
+                            lastDice == null &&
+                            !rolling)
                         ? _roll
                         : null,
                     icon: const Icon(Icons.casino),
-                    label: Text(rolling ? '...' : (lastDice?.toString() ?? 'ارمِ النرد')),
+                    label: Text(rolling
+                        ? '...'
+                        : (lastDice?.toString() ?? 'ارمِ النرد')),
                     style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 28, vertical: 14),
                       textStyle: const TextStyle(fontSize: 18),
                     ),
                   ),
