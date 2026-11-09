@@ -68,7 +68,10 @@ class LudoEngine {
       return false;
     }
 
-    return tokens.every((token) => token.color == tokens.first.color);
+    // A block exists when any one color has at least two tokens in the cell.
+    // An additional token of another color does not dissolve that pair.
+    return tokens.any((token) =>
+        tokens.where((other) => other.color == token.color).length >= 2);
   }
 
   /// Returns true when an opponent block occupies the given cell.
@@ -83,9 +86,10 @@ class LudoEngine {
     }
 
     // A blocking pair must contain two or more tokens of one opponent color.
-    // Mixed-color stacks are not a valid block.
-    return tokens.first.color != movingToken.color &&
-        tokens.every((token) => token.color == tokens.first.color);
+    // A third token of another color does not dissolve the opponent pair.
+    return tokens.any((token) =>
+        token.color != movingToken.color &&
+        tokens.where((other) => other.color == token.color).length >= 2);
   }
 
   /// Checks every shared-path cell crossed by [token].
