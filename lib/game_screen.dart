@@ -176,7 +176,7 @@ class _GameScreenState extends State<GameScreen> {
                       margin: const EdgeInsets.symmetric(horizontal: 4),
                       padding: const EdgeInsets.symmetric(vertical: 6),
                       decoration: BoxDecoration(
-                        color: p.color.color.withOpacity(isTurn ? 0.85 : 0.25),
+                        color: p.color.color.withValues(alpha: isTurn ? 0.85 : 0.25),
                         borderRadius: BorderRadius.circular(8),
                         border: isTurn
                             ? Border.all(color: Colors.black, width: 2)
