@@ -78,7 +78,8 @@ class _GameScreenState extends State<GameScreen> {
             '${currentPlayer.color.label} رمى $dice — لا توجد نقلة ممكنة');
         Future.delayed(const Duration(milliseconds: 700), () {
           if (!mounted) return;
-          _nextTurn(extraTurn: false);
+          // A six grants another roll even when no legal move exists.
+          _nextTurn(extraTurn: dice == 6);
         });
         return;
       }
