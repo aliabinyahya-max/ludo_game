@@ -82,7 +82,10 @@ class LudoEngine {
       return false;
     }
 
-    return tokens.any((token) => token.color != movingToken.color);
+    // A blocking pair must contain two or more tokens of one opponent color.
+    // Mixed-color stacks are not a valid block.
+    return tokens.first.color != movingToken.color &&
+        tokens.every((token) => token.color == tokens.first.color);
   }
 
   /// Checks every shared-path cell crossed by [token].
