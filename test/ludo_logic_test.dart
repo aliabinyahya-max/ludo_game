@@ -452,6 +452,28 @@ void main() {
       expect(medium, same(red.tokens[0]));
       expect(hard, same(red.tokens[1]));
     });
+
+    test('expert AI is more conservative than hard near an opponent threat', () {
+      final red = LudoPlayer(color: PlayerColor.red, isAI: true);
+      final green = LudoPlayer(color: PlayerColor.green, isAI: false);
+      final engine = LudoEngine([red, green]);
+
+      // Hard prefers the far-advanced token despite exposure; expert's
+      // stronger threat penalty selects the less advanced alternative.
+      red.tokens[0].step = 50;
+      red.tokens[1].step = 0;
+      green.tokens[0].step = 37; // Global cell 50; can reach 51 next turn.
+
+      final hard = engine.chooseAIMove(
+        red, 1, difficulty: AIDifficulty.hard,
+      );
+      final expert = engine.chooseAIMove(
+        red, 1, difficulty: AIDifficulty.expert,
+      );
+
+      expect(hard, same(red.tokens[0]));
+      expect(expert, same(red.tokens[1]));
+    });
   });
 
 }
