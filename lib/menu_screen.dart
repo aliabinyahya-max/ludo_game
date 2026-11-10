@@ -5,7 +5,9 @@ import 'game_screen.dart';
 import 'ludo_data.dart';
 
 class MenuScreen extends StatefulWidget {
-  const MenuScreen({super.key});
+  final bool use3DBoard;
+
+  const MenuScreen({super.key, this.use3DBoard = true});
 
   @override
   State<MenuScreen> createState() => _MenuScreenState();
@@ -326,7 +328,9 @@ class _MenuScreenState extends State<MenuScreen> {
       if (isAI != null) seats[color] = isAI;
     });
     Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => GameScreen(seats: seats)),
+      MaterialPageRoute(
+        builder: (_) => GameScreen(seats: seats, use3DBoard: widget.use3DBoard),
+      ),
     );
   }
 }
