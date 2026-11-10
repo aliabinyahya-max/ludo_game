@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ludo_game/game_screen.dart';
 import 'package:ludo_game/ludo_data.dart';
 
@@ -7,6 +8,9 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('GameScreen turn flow', () {
+    setUp(() {
+      SharedPreferences.setMockInitialValues({});
+    });
     testWidgets('locks dice input until the third-six turn transition completes',
         (tester) async {
       tester.view.physicalSize = const Size(1080, 1920);
