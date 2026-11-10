@@ -461,7 +461,7 @@ void main() {
       // Hard prefers the far-advanced token despite exposure; expert's
       // stronger threat penalty selects the less advanced alternative.
       red.tokens[0].step = 50;
-      red.tokens[1].step = 0;
+      red.tokens[1].step = 9;
       green.tokens[0].step = 37; // Global cell 50; can reach 51 next turn.
 
       final hard = engine.chooseAIMove(
