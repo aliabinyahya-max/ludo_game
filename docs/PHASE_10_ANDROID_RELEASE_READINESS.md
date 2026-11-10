@@ -49,3 +49,17 @@ The next non-build CI run must pass SDK provisioning, dependency resolution, ana
 Runs `42780479279` and `42780483585` failed after `sdkmanager --licenses` had printed `All SDK package licenses accepted`. The failure was the `yes` producer's expected SIGPIPE being promoted to a pipeline failure by `pipefail`; the sdkmanager exit code is now checked independently. The correction is committed as `31dea195c8058eed8ea5aec7675083fbbf3a8250`.
 
 The next validation run must still confirm SDK package installation, dependency resolution, analysis, and tests. Android packaging/native compilation and device runtime remain unverified.
+
+## Evidence correction — successful one-time debug build and device result
+
+The earlier build-failure narrative above describes the first, unsuccessful attempt and is superseded by the later authorized one-time build:
+
+- Successful debug APK build and artifact upload: [42781991508](https://github.com/aliabinyahya-max/ludo_game/actions/runs/42781991508).
+- The user confirmed that the APK was installed on a physical Android phone.
+- The app launches and the main menu is visible according to the user's device report.
+- Starting a match currently produces a blank board area. The user supplied screenshots showing the match app bar and back control without visible board content.
+- A source-level timeout/error fallback to the existing 2D board has been added. It has passed PR validation, but is not yet verified on the phone.
+- No further build is authorized. Current and subsequent CI workflows are validation-only and must not build APK/AAB artifacts.
+
+The release blockers remain: physical-device gameplay acceptance, renderer/fallback device verification, permanent application ID, production signing, target-SDK policy review, and approved launcher branding.
+
