@@ -7,6 +7,10 @@ on:
     branches: [main, master, fix/ludo-rules-tests-20261110, feat/premium-menu-phase-01-02-20261110]
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   validate:
     runs-on: ubuntu-latest
