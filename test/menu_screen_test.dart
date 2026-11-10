@@ -37,6 +37,7 @@ void main() {
       final start = find.widgetWithText(ElevatedButton, 'ابدأ المباراة');
       expect(tester.widget<ElevatedButton>(start).onPressed, isNotNull);
 
+      await tester.ensureVisible(find.byKey(const ValueKey('seat-green')));
       await tester.tap(find.byKey(const ValueKey('seat-green')));
       await tester.pump();
       expect(tester.widget<ElevatedButton>(start).onPressed, isNull);
@@ -67,6 +68,7 @@ void main() {
       expect(find.text('كمبيوتر'), findsOneWidget);
       expect(find.text('مقعد فارغ'), findsNWidgets(2));
 
+      await tester.ensureVisible(find.byKey(const ValueKey('seat-red')));
       await tester.tap(find.byKey(const ValueKey('seat-red')));
       await tester.pump();
       expect(find.text('كمبيوتر'), findsNWidgets(2));
