@@ -18,6 +18,7 @@ class GameScreen extends StatefulWidget {
   final bool soundEnabled;
   final Map<String, dynamic>? resumeData;
   final String languageCode;
+  final Duration boardInitializationTimeout;
 
   const GameScreen({
     super.key,
@@ -28,6 +29,7 @@ class GameScreen extends StatefulWidget {
     this.soundEnabled = true,
     this.resumeData,
     this.languageCode = 'ar',
+    this.boardInitializationTimeout = const Duration(seconds: 8),
   });
 
   @override
@@ -48,11 +50,26 @@ class _GameScreenState extends State<GameScreen> {
   final LocalGameStore _store = LocalGameStore();
   int captureCount = 0;
   late DateTime _startedAt;
+  late bool _use3DBoard;
+  Timer? _boardInitializationTimer;
 
   @override
   void initState() {
     super.initState();
     _startedAt = DateTime.now();
+    _use3DBoard = widget.use3DBoard;
+    if (_use3DBoard) {
+      _boardInitializationTimer = Timer(widget.boardInitializationTimeout, () {
+        if (!mounted || !_use3DBoard) return;
+        setState(() {
+          _use3DBoard = false;
+          message = _text(
+            'تعذر تشغيل اللوحة ثلاثية الأبعاد؛ تم التبديل إلى اللوحة البديلة.',
+            'The 3D board could not start; switched to the fallback board.',
+          );
+        });
+      });
+    }
     final savedPlayers = widget.resumeData?['players'];
     if (savedPlayers is List) {
       players = savedPlayers.map((entry) {
@@ -101,6 +118,30 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   LudoPlayer get currentPlayer => players[currentPlayerIndex];
+
+  void _on3DBoardReady() {
+    _boardInitializationTimer?.cancel();
+    _boardInitializationTimer = null;
+  }
+
+  void _on3DBoardError(Object error, StackTrace stackTrace) {
+    _boardInitializationTimer?.cancel();
+    _boardInitializationTimer = null;
+    if (!mounted || !_use3DBoard) return;
+    setState(() {
+      _use3DBoard = false;
+      message = _text(
+        'تعذر تشغيل اللوحة ثلاثية الأبعاد؛ تم التبديل إلى اللوحة البديلة.',
+        'The 3D board failed; switched to the fallback board.',
+      );
+    });
+  }
+
+  @override
+  void dispose() {
+    _boardInitializationTimer?.cancel();
+    super.dispose();
+  }
 
   String _text(String ar, String en) => widget.languageCode == 'en' ? en : ar;
 
@@ -401,8 +442,10 @@ class _GameScreenState extends State<GameScreen> {
               child: Center(
                 child: Padding(
                   padding: const EdgeInsets.all(12),
-                  child: widget.use3DBoard
+                  child: _use3DBoard
                       ? LudoBoard3D(
+                          onReady: _on3DBoardReady,
+                          onError: _on3DBoardError,
                           players: players,
                           highlightedTokens: movable,
                           onTokenTap: _onTokenTap,
