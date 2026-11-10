@@ -3,6 +3,9 @@ import 'dart:math';
 import 'ludo_data.dart';
 import 'ludo_models.dart';
 
+/// Four selectable computer skill profiles.
+enum AIDifficulty { easy, medium, hard, expert }
+
 class MoveResult {
   final LudoToken moved;
   final List<LudoToken> captured;
@@ -263,89 +266,121 @@ class LudoEngine {
     );
   }
 
-  /// Basic AI move selection.
-  ///
-  /// Priority:
-  /// 1. Capture an opponent.
-  /// 2. Finish a token.
-  /// 3. Bring a token out of base.
-  /// 4. Advance the most progressed token.
-  /// 5. Fallback to the first legal token.
-  LudoToken chooseAIMove(LudoPlayer player, int dice) {
+  /// Selects a legal move using one of four distinct decision profiles.
+  LudoToken chooseAIMove(
+    LudoPlayer player,
+    int dice, {
+    AIDifficulty difficulty = AIDifficulty.medium,
+  }) {
     final options = movableTokens(player, dice);
-
     if (options.isEmpty) {
       throw StateError(
         'No legal move available for ${player.color.label} with dice $dice.',
       );
     }
 
-    // 1. Prefer a capture.
+    if (difficulty == AIDifficulty.easy) {
+      return options[_rng.nextInt(options.length)];
+    }
+    if (difficulty == AIDifficulty.medium) {
+      return _chooseMediumMove(player, options, dice);
+    }
+
+    LudoToken? best;
+    var bestScore = double.negativeInfinity;
     for (final token in options) {
       final targetStep = destinationStep(token, dice);
+      final targetGlobal = targetStep < homeEntryStep
+          ? (startIndex[token.color]! + targetStep) % mainPathLength
+          : null;
+      var score = targetStep * 2.0;
 
-      if (targetStep >= homeEntryStep) {
-        continue;
+      if (targetStep == finishedStep) score += 1200;
+      if (targetStep >= homeEntryStep) score += 35;
+      if (token.inBase) {
+        final active = player.tokens.where((t) => t.onBoard).length;
+        score += active < 2 ? 90 : 18;
       }
 
-      final targetGlobal = token.inBase
-          ? startIndex[token.color]!
-          : (startIndex[token.color]! + targetStep) % mainPathLength;
+      if (targetGlobal != null) {
+        if (isSafeGlobalCell(targetGlobal)) score += 55;
+        final captures = players.any((other) =>
+            other.color != player.color &&
+            other.tokens.any((enemy) =>
+                enemy.onPath && enemy.globalPathIndex == targetGlobal));
+        if (captures) score += 850;
 
-      if (isSafeGlobalCell(targetGlobal)) {
-        continue;
+        final createsOwnStack = player.tokens.any((other) =>
+            !identical(other, token) &&
+            other.onPath &&
+            other.globalPathIndex == targetGlobal);
+        if (createsOwnStack) {
+          score += difficulty == AIDifficulty.expert ? 42 : 24;
+        }
+
+        final exposed = !isSafeGlobalCell(targetGlobal) &&
+            players.where((other) => other.color != player.color).any((other) =>
+                other.tokens.any((enemy) {
+                  if (!enemy.onPath) return false;
+                  for (var roll = 1; roll <= 6; roll++) {
+                    final enemyTarget = enemy.step + roll;
+                    if (enemyTarget < homeEntryStep &&
+                        (startIndex[enemy.color]! + enemyTarget) %
+                                mainPathLength ==
+                            targetGlobal) {
+                      return true;
+                    }
+                  }
+                  return false;
+                }));
+        if (exposed) {
+          score -= difficulty == AIDifficulty.expert ? 115 : 48;
+        }
       }
 
-      if (isOpponentBlockAtGlobalCell(token, targetGlobal)) {
-        continue;
+      if (difficulty == AIDifficulty.expert && token.inHomeColumn) {
+        score += 12;
       }
-
-      final capturesOpponent = players.any(
-        (otherPlayer) =>
-            otherPlayer.color != token.color &&
-            otherPlayer.tokens.any(
-              (opponentToken) =>
-                  opponentToken.onPath &&
-                  globalPathIndexOf(opponentToken) == targetGlobal,
-            ),
-      );
-
-      if (capturesOpponent) {
-        return token;
+      if (score > bestScore) {
+        bestScore = score;
+        best = token;
       }
     }
+    return best!;
+  }
 
-    // 2. Prefer finishing a token.
+  LudoToken _chooseMediumMove(
+    LudoPlayer player,
+    List<LudoToken> options,
+    int dice,
+  ) {
     for (final token in options) {
-      if (destinationStep(token, dice) == finishedStep) {
-        return token;
-      }
+      final targetStep = destinationStep(token, dice);
+      if (targetStep >= homeEntryStep) continue;
+      final targetGlobal = (startIndex[token.color]! + targetStep) %
+          mainPathLength;
+      if (isSafeGlobalCell(targetGlobal)) continue;
+      final captures = players.any((other) =>
+          other.color != token.color &&
+          other.tokens.any((enemy) =>
+              enemy.onPath && enemy.globalPathIndex == targetGlobal));
+      if (captures) return token;
     }
 
-    // 3. Prefer bringing a token out of base on a 6.
+    for (final token in options) {
+      if (destinationStep(token, dice) == finishedStep) return token;
+    }
+
     final activeTokenCount =
         player.tokens.where((token) => token.onBoard).length;
-
     if (dice == 6 && activeTokenCount < 2) {
       final baseTokens = options.where((token) => token.inBase).toList();
-
-      if (baseTokens.isNotEmpty) {
-        return baseTokens.first;
-      }
+      if (baseTokens.isNotEmpty) return baseTokens.first;
     }
 
-    // 4. Advance the most progressed token.
-    final movingTokens = options.where((token) => !token.inBase).toList();
-
-    if (movingTokens.isNotEmpty) {
-      movingTokens.sort(
-        (a, b) => b.step.compareTo(a.step),
-      );
-
-      return movingTokens.first;
-    }
-
-    // 5. Fallback.
+    final movingTokens = options.where((token) => !token.inBase).toList()
+      ..sort((a, b) => b.step.compareTo(a.step));
+    if (movingTokens.isNotEmpty) return movingTokens.first;
     return options.first;
   }
 }
