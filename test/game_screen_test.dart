@@ -41,7 +41,16 @@ void main() {
         final token = find.byKey(ValueKey(tokenKey));
         expect(token, findsOneWidget);
         await tester.tap(token);
-        await tester.pumpAndSettle();
+        final movementSteps = tokenKey.endsWith('red-0') ? 0 : 6;
+        if (movementSteps == 0) {
+          await tester.pump(const Duration(milliseconds: 141));
+        } else {
+          for (var step = 0; step < movementSteps; step++) {
+            await tester.pump(const Duration(milliseconds: 121));
+          }
+        }
+        await tester.pump(const Duration(milliseconds: 501));
+        await tester.pump();
       }
 
       await rollAndMove('token-red-0');
