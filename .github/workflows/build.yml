@@ -69,6 +69,11 @@ jobs:
           channel: stable
           cache: true
 
+      - name: Install required Android CMake
+        run: |
+          yes | sdkmanager --licenses
+          sdkmanager "cmake;3.31.4"
+
       - name: Get Dependencies
         run: flutter pub get
 
