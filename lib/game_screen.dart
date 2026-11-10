@@ -6,6 +6,7 @@ import 'ludo_models.dart';
 import 'ludo_logic.dart';
 import 'ludo_board.dart';
 import 'ludo_board_3d.dart';
+import 'local_game_store.dart';
 
 class GameScreen extends StatefulWidget {
   /// Map of color -> isAI. Colors not present are not in the game.
@@ -15,6 +16,7 @@ class GameScreen extends StatefulWidget {
   final bool use3DBoard;
   final AIDifficulty aiDifficulty;
   final bool soundEnabled;
+  final Map<String, dynamic>? resumeData;
 
   const GameScreen({
     super.key,
@@ -23,6 +25,7 @@ class GameScreen extends StatefulWidget {
     this.use3DBoard = true,
     this.aiDifficulty = AIDifficulty.medium,
     this.soundEnabled = true,
+    this.resumeData,
   });
 
   @override
@@ -40,15 +43,57 @@ class _GameScreenState extends State<GameScreen> {
   bool turnTransitioning = false;
   bool gameOver = false;
   String message = '';
+  final LocalGameStore _store = LocalGameStore();
+  int captureCount = 0;
+  late DateTime _startedAt;
 
   @override
   void initState() {
     super.initState();
-    players = widget.seats.entries
-        .map((e) => LudoPlayer(color: e.key, isAI: e.value))
-        .toList()
-      ..sort((a, b) => a.color.index.compareTo(b.color.index));
+    _startedAt = DateTime.now();
+    final savedPlayers = widget.resumeData?['players'];
+    if (savedPlayers is List) {
+      players = savedPlayers.map((entry) {
+        final data = Map<String, dynamic>.from(entry as Map);
+        final color = PlayerColor.values.firstWhere(
+          (value) => value.name == data['color'],
+        );
+        final player = LudoPlayer(
+          color: color,
+          isAI: data['isAI'] == true,
+        );
+        final steps = data['steps'] as List;
+        for (var i = 0; i < player.tokens.length && i < steps.length; i++) {
+          player.tokens[i].step = (steps[i] as num).toInt();
+        }
+        return player;
+      }).toList();
+    } else {
+      players = widget.seats.entries
+          .map((e) => LudoPlayer(color: e.key, isAI: e.value))
+          .toList()
+        ..sort((a, b) => a.color.index.compareTo(b.color.index));
+    }
     engine = LudoEngine(players);
+    final saved = widget.resumeData;
+    if (saved != null) {
+      currentPlayerIndex =
+          ((saved['currentPlayerIndex'] as num?)?.toInt() ?? 0)
+              .clamp(0, players.length - 1)
+              .toInt();
+      turnTracker.consecutiveSixes =
+          (saved['consecutiveSixes'] as num?)?.toInt() ?? 0;
+      lastDice = (saved['lastDice'] as num?)?.toInt();
+      captureCount = (saved['captureCount'] as num?)?.toInt() ?? 0;
+      gameOver = saved['gameOver'] == true;
+      final started = saved['startedAt'];
+      if (started is String) {
+        _startedAt = DateTime.tryParse(started) ?? _startedAt;
+      }
+      if (lastDice != null) {
+        movable = engine.movableTokens(currentPlayer, lastDice!);
+      }
+    }
     message = 'دور ${players[currentPlayerIndex].color.label}: ارمِ النرد';
     _maybeTriggerAI();
   }
@@ -74,6 +119,7 @@ class _GameScreenState extends State<GameScreen> {
       }
       message = 'دور ${currentPlayer.color.label}: ارمِ النرد';
     });
+    unawaited(_persistMatch());
     _maybeTriggerAI();
   }
 
@@ -82,9 +128,38 @@ class _GameScreenState extends State<GameScreen> {
     if (currentPlayer.isAI) {
       Future.delayed(const Duration(milliseconds: 600), () {
         if (!mounted || gameOver) return;
-        _roll();
+        if (lastDice != null && movable.isNotEmpty) {
+          _performMove(
+            engine.chooseAIMove(
+              currentPlayer,
+              lastDice!,
+              difficulty: widget.aiDifficulty,
+            ),
+            lastDice!,
+          );
+        } else {
+          _roll();
+        }
       });
     }
+  }
+
+  Future<void> _persistMatch() async {
+    if (gameOver) return;
+    await _store.saveMatch({
+      'version': 1,
+      'players': players.map((player) => {
+        'color': player.color.name,
+        'isAI': player.isAI,
+        'steps': player.tokens.map((token) => token.step).toList(),
+      }).toList(),
+      'currentPlayerIndex': currentPlayerIndex,
+      'consecutiveSixes': turnTracker.consecutiveSixes,
+      'lastDice': lastDice,
+      'captureCount': captureCount,
+      'gameOver': gameOver,
+      'startedAt': _startedAt.toIso8601String(),
+    });
   }
 
   void _roll() {
@@ -116,6 +191,7 @@ class _GameScreenState extends State<GameScreen> {
         lastDice = dice;
         movable = opts;
       });
+      unawaited(_persistMatch());
       if (opts.isEmpty) {
         setState(() => message =
             '${currentPlayer.color.label} رمى $dice — لا توجد نقلة ممكنة');
@@ -170,6 +246,7 @@ class _GameScreenState extends State<GameScreen> {
     // through the rules engine exactly once.
     token.step = startStep;
     final result = engine.applyMove(token, dice);
+    captureCount += result.captured.length;
     _playSound(alert: result.captured.isNotEmpty);
 
     setState(() {
@@ -188,6 +265,12 @@ class _GameScreenState extends State<GameScreen> {
         message = '🏆 ${currentPlayer.color.label} فاز باللعبة!';
       });
       _playSound(alert: true);
+      await _store.recordCompletedMatch({
+        'winner': currentPlayer.color.name,
+        'playerCount': players.length,
+        'captures': captureCount,
+        'durationSeconds': DateTime.now().difference(_startedAt).inSeconds,
+      });
       return;
     }
 
