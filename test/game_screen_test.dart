@@ -71,7 +71,7 @@ void main() {
       expect(tester.widget<ElevatedButton>(diceButton).onPressed, isNotNull);
     });
 
-    testWidgets('renders supported 2-4 player human and AI combinations',
+    testWidgets('cycles human and AI turns for 2-4 player configurations',
         (tester) async {
       tester.view.physicalSize = const Size(1080, 1920);
       tester.view.devicePixelRatio = 1;
@@ -79,20 +79,39 @@ void main() {
       addTearDown(tester.view.resetDevicePixelRatio);
 
       for (var count = 2; count <= 4; count++) {
+        var rollCount = 0;
+        int deterministicOne() {
+          rollCount++;
+          return 1;
+        }
+
         final seats = <PlayerColor, bool>{
           for (var i = 0; i < count; i++)
             PlayerColor.values[i]: i != 0,
         };
 
         await tester.pumpWidget(
-          MaterialApp(home: GameScreen(seats: seats)),
+          MaterialApp(
+            home: GameScreen(seats: seats, diceRoller: deterministicOne),
+          ),
         );
-        await tester.pump();
 
         expect(find.text('لودو'), findsOneWidget);
         expect(find.text('لاعب'), findsOneWidget);
         expect(find.text('كمبيوتر'), findsNWidgets(count - 1));
 
+        await tester.tap(find.byType(ElevatedButton).first);
+        await tester.pump(const Duration(milliseconds: 351));
+        await tester.pump(const Duration(milliseconds: 701));
+
+        for (var aiTurn = 1; aiTurn < count; aiTurn++) {
+          await tester.pump(const Duration(milliseconds: 601));
+          await tester.pump(const Duration(milliseconds: 351));
+          await tester.pump(const Duration(milliseconds: 701));
+        }
+
+        expect(rollCount, count);
+        expect(find.textContaining('دور أحمر'), findsOneWidget);
         await tester.pumpWidget(const SizedBox.shrink());
       }
     });
