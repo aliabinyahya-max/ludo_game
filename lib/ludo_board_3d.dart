@@ -313,9 +313,8 @@ class _LudoBoard3DState extends State<LudoBoard3D> {
             child: Stack(
               fit: StackFit.expand,
               children: [
-                if (_ready)
-                  IgnorePointer(child: threeJs.build())
-                else
+                IgnorePointer(child: threeJs.build()),
+                if (!_ready)
                   const ColoredBox(
                     color: Color(0xFF10251D),
                     child: Center(
