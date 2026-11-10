@@ -28,6 +28,7 @@ void main() {
               PlayerColor.green: false,
             },
             diceRoller: deterministicSix,
+            use3DBoard: false,
           ),
         ),
       );
@@ -86,6 +87,7 @@ void main() {
               PlayerColor.green: false,
             },
             diceRoller: () => 5,
+            use3DBoard: false,
           ),
         ),
       );
@@ -122,7 +124,7 @@ void main() {
 
         await tester.pumpWidget(
           MaterialApp(
-            home: GameScreen(seats: seats, diceRoller: deterministicOne),
+            home: GameScreen(seats: seats, diceRoller: deterministicOne, use3DBoard: false),
           ),
         );
 
