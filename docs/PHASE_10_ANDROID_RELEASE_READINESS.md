@@ -43,3 +43,9 @@ The CI workflow now explicitly installs and verifies Android platform 36, Build 
 The first SDK-preflight run failed before package installation because `android-actions/setup-android@v3` requested the obsolete SDK package `tools`. The workflow was corrected to use the Android command-line SDK manager already present on the hosted Ubuntu runner, then explicitly install and verify the pinned SDK/NDK/CMake components. The correction is committed as `b6bf7ec398922dc0f4cd5373eb1174ca9cb98761`.
 
 The next non-build CI run must pass SDK provisioning, dependency resolution, analysis and tests. Android packaging and device execution remain unverified.
+
+## Follow-up CI failure: SDK license pipeline (2026-11-10)
+
+Runs `42780479279` and `42780483585` failed after `sdkmanager --licenses` had printed `All SDK package licenses accepted`. The failure was the `yes` producer's expected SIGPIPE being promoted to a pipeline failure by `pipefail`; the sdkmanager exit code is now checked independently. The correction is committed as `31dea195c8058eed8ea5aec7675083fbbf3a8250`.
+
+The next validation run must still confirm SDK package installation, dependency resolution, analysis, and tests. Android packaging/native compilation and device runtime remain unverified.
