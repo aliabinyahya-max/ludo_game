@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'ludo_data.dart';
 import 'ludo_models.dart';
 import 'ludo_logic.dart';
@@ -13,6 +14,7 @@ class GameScreen extends StatefulWidget {
   final int Function()? diceRoller;
   final bool use3DBoard;
   final AIDifficulty aiDifficulty;
+  final bool soundEnabled;
 
   const GameScreen({
     super.key,
@@ -20,6 +22,7 @@ class GameScreen extends StatefulWidget {
     this.diceRoller,
     this.use3DBoard = true,
     this.aiDifficulty = AIDifficulty.medium,
+    this.soundEnabled = true,
   });
 
   @override
@@ -52,6 +55,13 @@ class _GameScreenState extends State<GameScreen> {
 
   LudoPlayer get currentPlayer => players[currentPlayerIndex];
 
+  void _playSound({bool alert = false}) {
+    if (!widget.soundEnabled) return;
+    unawaited(SystemSound.play(
+      alert ? SystemSoundType.alert : SystemSoundType.click,
+    ));
+  }
+
   void _nextTurn({bool extraTurn = false}) {
     setState(() {
       lastDice = null;
@@ -79,6 +89,7 @@ class _GameScreenState extends State<GameScreen> {
 
   void _roll() {
     if (rolling || turnTransitioning || gameOver) return;
+    _playSound();
     setState(() => rolling = true);
     Future.delayed(const Duration(milliseconds: 350), () {
       if (!mounted) return;
@@ -159,6 +170,7 @@ class _GameScreenState extends State<GameScreen> {
     // through the rules engine exactly once.
     token.step = startStep;
     final result = engine.applyMove(token, dice);
+    _playSound(alert: result.captured.isNotEmpty);
 
     setState(() {
       if (result.captured.isNotEmpty) {
@@ -175,6 +187,7 @@ class _GameScreenState extends State<GameScreen> {
         gameOver = true;
         message = '🏆 ${currentPlayer.color.label} فاز باللعبة!';
       });
+      _playSound(alert: true);
       return;
     }
 
