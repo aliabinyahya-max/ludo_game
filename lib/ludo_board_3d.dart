@@ -130,7 +130,7 @@ class _LudoBoard3DState extends State<LudoBoard3D> {
 
     threeJs.addAnimationEvent((dt) {
       _elapsed += dt;
-      final blend = math.min(1.0, dt * 13.0);
+      final blend = math.min(1.0, dt * 13.0).toDouble();
       for (final player in widget.players) {
         for (final token in player.tokens) {
           final key = _tokenKey(token);
