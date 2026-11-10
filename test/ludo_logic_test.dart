@@ -404,4 +404,32 @@ void main() {
     });
   });
 
+  group('AI difficulty profiles', () {
+    test('all four difficulty profiles return a legal move', () {
+      final red = LudoPlayer(color: PlayerColor.red, isAI: true);
+      final green = LudoPlayer(color: PlayerColor.green, isAI: false);
+      final engine = LudoEngine([red, green]);
+
+      for (final level in AIDifficulty.values) {
+        final selected = engine.chooseAIMove(
+          red,
+          6,
+          difficulty: level,
+        );
+        expect(red.tokens, contains(selected), reason: 'Invalid move at $level');
+        expect(engine.canMoveToken(selected, 6), isTrue);
+      }
+    });
+
+    test('four distinct difficulty levels are exposed', () {
+      expect(AIDifficulty.values, hasLength(4));
+      expect(AIDifficulty.values, containsAll([
+        AIDifficulty.easy,
+        AIDifficulty.medium,
+        AIDifficulty.hard,
+        AIDifficulty.expert,
+      ]));
+    });
+  });
+
 }
