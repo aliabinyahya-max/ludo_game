@@ -43,6 +43,7 @@ class LudoBoard extends StatelessWidget {
                 width: cell * 0.80,
                 height: cell * 0.80,
                 child: GestureDetector(
+                  key: ValueKey('token-${p.color.name}-${t.id}'),
                   onTap: isHighlighted ? () => onTokenTap(t) : null,
                   child: _TokenDot(
                     color: p.color.color,
@@ -105,7 +106,7 @@ class _TokenDot extends StatelessWidget {
         boxShadow: highlighted
             ? [
                 BoxShadow(
-                    color: color.withOpacity(0.95),
+                    color: color.withValues(alpha: 0.95),
                     blurRadius: 10,
                     spreadRadius: 1.5),
                 const BoxShadow(
@@ -169,7 +170,7 @@ class _BoardPainter extends CustomPainter {
     }
 
     for (final entry in homeColumns.entries) {
-      final tint = entry.key.color.withOpacity(0.4);
+      final tint = entry.key.color.withValues(alpha: 0.4);
       for (final rc in entry.value) {
         final rect = Rect.fromLTWH(rc[1] * cell, rc[0] * cell, cell, cell);
         canvas.drawRect(rect, Paint()..color = tint);
@@ -180,7 +181,7 @@ class _BoardPainter extends CustomPainter {
     for (final entry in startIndex.entries) {
       final rc = mainPath[entry.value];
       final rect = Rect.fromLTWH(rc[1] * cell, rc[0] * cell, cell, cell);
-      canvas.drawRect(rect, Paint()..color = entry.key.color.withOpacity(0.6));
+      canvas.drawRect(rect, Paint()..color = entry.key.color.withValues(alpha: 0.6));
       canvas.drawRect(rect, gridPaint..style = PaintingStyle.stroke);
       _drawStar(canvas, rect.center, cell * 0.3, Colors.white);
     }
@@ -212,7 +213,7 @@ class _BoardPainter extends CustomPainter {
 
   void _fillTriangle(Canvas canvas, List<Offset> points, Color color) {
     final path = Path()..addPolygon(points, true);
-    canvas.drawPath(path, Paint()..color = color.withOpacity(0.85));
+    canvas.drawPath(path, Paint()..color = color.withValues(alpha: 0.85));
   }
 
   void _drawStar(Canvas canvas, Offset center, double radius, Color color) {
@@ -231,7 +232,7 @@ class _BoardPainter extends CustomPainter {
       }
     }
     path.close();
-    canvas.drawPath(path, Paint()..color = color.withOpacity(0.9));
+    canvas.drawPath(path, Paint()..color = color.withValues(alpha: 0.9));
   }
 
   void _drawBase(Canvas canvas, double cell, List<int> origin, Color color) {
@@ -239,7 +240,7 @@ class _BoardPainter extends CustomPainter {
         Rect.fromLTWH(origin[1] * cell, origin[0] * cell, cell * 6, cell * 6);
     final outerRRect =
         RRect.fromRectAndRadius(outerRect, Radius.circular(cell * 0.4));
-    canvas.drawRRect(outerRRect, Paint()..color = color.withOpacity(0.28));
+    canvas.drawRRect(outerRRect, Paint()..color = color.withValues(alpha: 0.28));
     canvas.drawRRect(
         outerRRect,
         Paint()
@@ -255,7 +256,7 @@ class _BoardPainter extends CustomPainter {
     canvas.drawRRect(
         innerRRect,
         Paint()
-          ..color = color.withOpacity(0.6)
+          ..color = color.withValues(alpha: 0.6)
           ..style = PaintingStyle.stroke
           ..strokeWidth = 1.5);
 
@@ -265,12 +266,12 @@ class _BoardPainter extends CustomPainter {
         (origin[0] + slot[0] + 0.5) * cell,
       );
       canvas.drawCircle(
-          slotCenter, cell * 0.32, Paint()..color = color.withOpacity(0.15));
+          slotCenter, cell * 0.32, Paint()..color = color.withValues(alpha: 0.15));
       canvas.drawCircle(
         slotCenter,
         cell * 0.32,
         Paint()
-          ..color = color.withOpacity(0.5)
+          ..color = color.withValues(alpha: 0.5)
           ..style = PaintingStyle.stroke
           ..strokeWidth = 1,
       );

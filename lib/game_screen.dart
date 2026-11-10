@@ -9,7 +9,9 @@ class GameScreen extends StatefulWidget {
   /// Map of color -> isAI. Colors not present are not in the game.
   final Map<PlayerColor, bool> seats;
 
-  const GameScreen({super.key, required this.seats});
+  final int Function()? diceRoller;
+
+  const GameScreen({super.key, required this.seats, this.diceRoller});
 
   @override
   State<GameScreen> createState() => _GameScreenState();
@@ -18,10 +20,12 @@ class GameScreen extends StatefulWidget {
 class _GameScreenState extends State<GameScreen> {
   late LudoEngine engine;
   late List<LudoPlayer> players;
+  final LudoTurnTracker turnTracker = LudoTurnTracker();
   int currentPlayerIndex = 0;
   int? lastDice;
   List<LudoToken> movable = [];
   bool rolling = false;
+  bool turnTransitioning = false;
   bool gameOver = false;
   String message = '';
 
@@ -43,8 +47,11 @@ class _GameScreenState extends State<GameScreen> {
     setState(() {
       lastDice = null;
       movable = [];
+      rolling = false;
+      turnTransitioning = false;
       if (!extraTurn) {
         currentPlayerIndex = (currentPlayerIndex + 1) % players.length;
+        turnTracker.reset();
       }
       message = 'دور ${currentPlayer.color.label}: ارمِ النرد';
     });
@@ -62,11 +69,27 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   void _roll() {
-    if (rolling || gameOver) return;
+    if (rolling || turnTransitioning || gameOver) return;
     setState(() => rolling = true);
     Future.delayed(const Duration(milliseconds: 350), () {
       if (!mounted) return;
-      final dice = engine.rollDice();
+      final dice = widget.diceRoller?.call() ?? engine.rollDice();
+      final turnCancelled = turnTracker.registerRoll(dice);
+      if (turnCancelled) {
+        setState(() {
+          rolling = false;
+          turnTransitioning = true;
+          lastDice = null;
+          movable = [];
+          message = '${currentPlayer.color.label} رمى 6 للمرة الثالثة — تم إلغاء الدور';
+        });
+        Future.delayed(const Duration(milliseconds: 700), () {
+          if (!mounted) return;
+          _nextTurn();
+        });
+        return;
+      }
+
       final opts = engine.movableTokens(currentPlayer, dice);
       setState(() {
         rolling = false;
@@ -78,7 +101,8 @@ class _GameScreenState extends State<GameScreen> {
             '${currentPlayer.color.label} رمى $dice — لا توجد نقلة ممكنة');
         Future.delayed(const Duration(milliseconds: 700), () {
           if (!mounted) return;
-          _nextTurn(extraTurn: false);
+          // A six grants another roll even when no legal move exists.
+          _nextTurn(extraTurn: dice == 6);
         });
         return;
       }
@@ -145,7 +169,10 @@ class _GameScreenState extends State<GameScreen> {
       return;
     }
 
-    final extra = dice == 6;
+    final extra = turnTracker.grantsExtraRoll(
+      dice: dice,
+      captured: result.captured.isNotEmpty,
+    );
     await Future.delayed(const Duration(milliseconds: 500));
 
     if (!mounted) return;
@@ -153,7 +180,7 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   void _onTokenTap(LudoToken token) {
-    if (currentPlayer.isAI || lastDice == null) return;
+    if (currentPlayer.isAI || lastDice == null || turnTransitioning) return;
     if (!movable.contains(token)) return;
     _performMove(token, lastDice!);
   }
@@ -175,7 +202,7 @@ class _GameScreenState extends State<GameScreen> {
                       margin: const EdgeInsets.symmetric(horizontal: 4),
                       padding: const EdgeInsets.symmetric(vertical: 6),
                       decoration: BoxDecoration(
-                        color: p.color.color.withOpacity(isTurn ? 0.85 : 0.25),
+                        color: p.color.color.withValues(alpha: isTurn ? 0.85 : 0.25),
                         borderRadius: BorderRadius.circular(8),
                         border: isTurn
                             ? Border.all(color: Colors.black, width: 2)
@@ -230,7 +257,8 @@ class _GameScreenState extends State<GameScreen> {
                     onPressed: (!gameOver &&
                             !currentPlayer.isAI &&
                             lastDice == null &&
-                            !rolling)
+                            !rolling &&
+                            !turnTransitioning)
                         ? _roll
                         : null,
                     icon: const Icon(Icons.casino),

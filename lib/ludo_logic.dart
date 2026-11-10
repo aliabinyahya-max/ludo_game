@@ -15,6 +15,35 @@ class MoveResult {
   );
 }
 
+/// Tracks consecutive sixes and determines extra-roll eligibility.
+class LudoTurnTracker {
+  int consecutiveSixes = 0;
+
+  /// Returns true when the third consecutive six cancels the player's turn.
+  bool registerRoll(int dice) {
+    if (dice != 6) {
+      consecutiveSixes = 0;
+      return false;
+    }
+
+    consecutiveSixes++;
+    if (consecutiveSixes >= 3) {
+      consecutiveSixes = 0;
+      return true;
+    }
+    return false;
+  }
+
+  /// A six or a capture grants an additional roll.
+  bool grantsExtraRoll({required int dice, required bool captured}) {
+    return dice == 6 || captured;
+  }
+
+  void reset() {
+    consecutiveSixes = 0;
+  }
+}
+
 /// Core rules engine for a Ludo match.
 ///
 /// This class contains game rules only. UI code should not need to know
@@ -68,7 +97,10 @@ class LudoEngine {
       return false;
     }
 
-    return tokens.every((token) => token.color == tokens.first.color);
+    // A block exists when any one color has at least two tokens in the cell.
+    // An additional token of another color does not dissolve that pair.
+    return tokens.any((token) =>
+        tokens.where((other) => other.color == token.color).length >= 2);
   }
 
   /// Returns true when an opponent block occupies the given cell.
@@ -82,7 +114,11 @@ class LudoEngine {
       return false;
     }
 
-    return tokens.any((token) => token.color != movingToken.color);
+    // A blocking pair must contain two or more tokens of one opponent color.
+    // A third token of another color does not dissolve the opponent pair.
+    return tokens.any((token) =>
+        token.color != movingToken.color &&
+        tokens.where((other) => other.color == token.color).length >= 2);
   }
 
   /// Checks every shared-path cell crossed by [token].
