@@ -204,10 +204,11 @@ class _GameScreenState extends State<GameScreen> {
         lastDice = dice;
         movable = opts;
       });
-      unawaited(_persistMatch());
       if (opts.isEmpty) {
-        setState(() => message =
-            '${currentPlayer.color.label} رمى $dice — لا توجد نقلة ممكنة');
+        setState(() => message = _text(
+          '${_colorLabel(currentPlayer.color)} رمى $dice — لا توجد نقلة ممكنة',
+          '${_colorLabel(currentPlayer.color)} rolled $dice — no legal move',
+        ));
         Future.delayed(const Duration(milliseconds: 700), () {
           if (!mounted) return;
           // A six grants another roll even when no legal move exists.
@@ -215,6 +216,7 @@ class _GameScreenState extends State<GameScreen> {
         });
         return;
       }
+      unawaited(_persistMatch());
       if (currentPlayer.isAI) {
         Future.delayed(const Duration(milliseconds: 500), () {
           if (!mounted) return;
@@ -228,8 +230,10 @@ class _GameScreenState extends State<GameScreen> {
           _performMove(opts.first, dice);
         });
       } else {
-        setState(() => message =
-            '${currentPlayer.color.label} رمى $dice — اختر مهرة للتحريك');
+        setState(() => message = _text(
+          '${_colorLabel(currentPlayer.color)} رمى $dice — اختر مهرة للتحريك',
+          '${_colorLabel(currentPlayer.color)} rolled $dice — choose a token',
+        ));
       }
     });
   }
