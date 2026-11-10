@@ -34,6 +34,7 @@ class _LudoBoard3DState extends State<LudoBoard3D> {
   final Map<String, List<double>> _targets = {};
   double _elapsed = 0;
   bool _ready = false;
+  bool _sceneReadyForDispose = false;
 
   static const Map<PlayerColor, int> _colors = {
     PlayerColor.red: 0xFFE53935,
@@ -62,6 +63,7 @@ class _LudoBoard3DState extends State<LudoBoard3D> {
     camera.up.setValues(0, 0, -1);
     camera.lookAt(three.Vector3(0, 0, 0));
     threeJs.camera = camera;
+    _sceneReadyForDispose = true;
 
     scene.add(three.AmbientLight(0xffffff, 1.1));
     final keyLight = three.DirectionalLight(0xffffff, 1.0);
@@ -296,7 +298,9 @@ class _LudoBoard3DState extends State<LudoBoard3D> {
 
   @override
   void dispose() {
-    threeJs.dispose();
+    // ThreeJS.dispose reads its late scene/camera fields. The menu can be
+    // torn down by widget tests before the asynchronous setup callback runs.
+    if (_sceneReadyForDispose) threeJs.dispose();
     three.loading.clear();
     super.dispose();
   }
