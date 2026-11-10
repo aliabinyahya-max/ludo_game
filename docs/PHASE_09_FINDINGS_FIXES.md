@@ -14,8 +14,10 @@ The Phase 06 audit found that the rules engine relied on the menu to provide a v
 
 ## Validation
 - Changes are committed on the feature branch.
-- GitHub Actions validation run `42740404385` was created for commit `8c7407cc612936197aff1a42f0bfd1480086bfe2`.
-- Final conclusion must be recorded after the workflow finishes. This report does not claim tests passed before that result is available.
+- GitHub Actions validation run `42740444794` completed: `flutter analyze` passed, but `flutter test` failed (46 passed, 1 failed).
+- Failure: the foreign-token regression test showed `canMoveToken` accepted an external `LudoToken` with matching color/id because ownership was not checked by object identity.
+- Corrective commit `a6685901ea8ed7f79991425b631f379d09669046` adds an identity-membership check against the current match roster before validating a move. `applyMove` inherits the rejection through `canMoveToken`.
+- The corrective commit was pushed to the feature branch. A fresh validation result has not yet been retrieved; stage remains pending CI confirmation.
 - No APK/AAB build was run.
 
 ## Remaining findings not fixed in this phase
@@ -24,4 +26,4 @@ The Phase 06 audit found that the rules engine relied on the menu to provide a v
 - Physical 3D/GPU and touch testing remains blocked by the no-build authorization boundary.
 
 ## Stage result
-**SOURCE FIXES APPLIED — CI RESULT PENDING.** If validation fails, inspect the failing job and retry the failing validation up to two additional times; if it remains failing, record the failure and proceed without representing the stage as passed.
+**SOURCE FIX APPLIED — FIRST VALIDATION FAILED, CORRECTION COMMITTED, RETEST PENDING.** The failed run was not treated as a pass. No APK/AAB or platform build was run.
