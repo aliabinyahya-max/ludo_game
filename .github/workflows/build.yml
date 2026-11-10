@@ -14,7 +14,7 @@ concurrency:
 jobs:
   validate:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
 
     steps:
       - name: Checkout
@@ -35,8 +35,7 @@ jobs:
           cache: true
 
       # GitHub-hosted Ubuntu runners already include Android command-line tools.
-      # Avoid android-actions/setup-android@v3 here: its legacy "tools" package
-      # request fails because that obsolete SDK package is no longer published.
+      # Avoid android-actions/setup-android@v3 because its legacy "tools" package is unavailable.
       - name: Locate preinstalled Android SDK manager
         id: android_sdk
         shell: bash
@@ -55,16 +54,12 @@ jobs:
           echo "sdkmanager=$SDKMANAGER" >> "$GITHUB_OUTPUT"
           "$SDKMANAGER" --version
 
-      # Provision and verify the exact native toolchain required by android/app/build.gradle.
-      # This is SDK preparation only: no Gradle task, APK, AAB, or app build is run.
       - name: Install and verify Android SDK components
         shell: bash
         env:
           SDKMANAGER: ${{ steps.android_sdk.outputs.sdkmanager }}
         run: |
           set -euo pipefail
-          # sdkmanager may exit as soon as all licenses are accepted.
-          # Avoid treating yes(1) SIGPIPE as a failed SDK license operation.
           set +o pipefail
           yes | "$SDKMANAGER" --licenses
           sdkmanager_status="${PIPESTATUS[1]}"
@@ -101,3 +96,18 @@ jobs:
 
       - name: Run automated tests
         run: flutter test
+
+      # The newly authorized single build runs only for the direct push to this branch.
+      # Pull-request validation and workflow_dispatch never execute a build.
+      - name: Build one debug APK (single authorized attempt)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/feat/3d-board-animations-phase-03-04-20261110'
+        run: flutter build apk --debug
+
+      - name: Upload debug APK
+        if: success() && github.event_name == 'push' && github.ref == 'refs/heads/feat/3d-board-animations-phase-03-04-20261110'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ludo-debug-apk
+          path: build/app/outputs/flutter-apk/app-debug.apk
+          if-no-files-found: error
+          retention-days: 7
