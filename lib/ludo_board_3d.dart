@@ -277,12 +277,13 @@ class _LudoBoard3DState extends State<LudoBoard3D> {
   }
 
   void _handleBoardTap(TapUpDetails details, Size size) {
-    final column = (details.localPosition.dx / size.width * boardSize)
-        .floor()
-        .clamp(0, boardSize - 1);
-    final row = (details.localPosition.dy / size.height * boardSize)
-        .floor()
-        .clamp(0, boardSize - 1);
+    // The orthographic camera frames 16.3 world units while the board spans
+    // 15 units. Convert the tap back into board-cell coordinates so the
+    // transparent input layer aligns with the visible 3D tiles.
+    final worldX = details.localPosition.dx / size.width * 16.3 - 8.15;
+    final worldZ = details.localPosition.dy / size.height * 16.3 - 8.15;
+    final column = (worldX + 7).round().clamp(0, boardSize - 1);
+    final row = (worldZ + 7).round().clamp(0, boardSize - 1);
 
     for (final token in widget.highlightedTokens) {
       final cell = _cellFor(token);
