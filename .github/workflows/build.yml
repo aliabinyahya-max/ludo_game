@@ -63,7 +63,16 @@ jobs:
           SDKMANAGER: ${{ steps.android_sdk.outputs.sdkmanager }}
         run: |
           set -euo pipefail
+          # sdkmanager may exit as soon as all licenses are accepted.
+          # Avoid treating yes(1) SIGPIPE as a failed SDK license operation.
+          set +o pipefail
           yes | "$SDKMANAGER" --licenses
+          sdkmanager_status="${PIPESTATUS[1]}"
+          set -o pipefail
+          if [ "$sdkmanager_status" -ne 0 ]; then
+            echo "::error::sdkmanager --licenses failed with exit code $sdkmanager_status"
+            exit "$sdkmanager_status"
+          fi
           "$SDKMANAGER" --install \
             "platform-tools" \
             "platforms;android-36" \
