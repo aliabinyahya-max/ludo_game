@@ -175,6 +175,26 @@ class _GameScreenState extends State<GameScreen> {
     });
   }
 
+  Future<void> _persistPendingTurn({required bool extraTurn}) async {
+    await _store.saveMatch({
+      'version': 1,
+      'players': players.map((player) => {
+        'color': player.color.name,
+        'isAI': player.isAI,
+        'steps': player.tokens.map((token) => token.step).toList(),
+      }).toList(),
+      'currentPlayerIndex': extraTurn
+          ? currentPlayerIndex
+          : (currentPlayerIndex + 1) % players.length,
+      'consecutiveSixes':
+          extraTurn ? turnTracker.consecutiveSixes : 0,
+      'lastDice': null,
+      'captureCount': captureCount,
+      'gameOver': false,
+      'startedAt': _startedAt.toIso8601String(),
+    });
+  }
+
   void _roll() {
     if (rolling || turnTransitioning || gameOver) return;
     _playSound();
@@ -295,6 +315,7 @@ class _GameScreenState extends State<GameScreen> {
       dice: dice,
       captured: result.captured.isNotEmpty,
     );
+    await _persistPendingTurn(extraTurn: extra);
     await Future.delayed(const Duration(milliseconds: 500));
 
     if (!mounted) return;
