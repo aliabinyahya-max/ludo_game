@@ -32,6 +32,6 @@ This debug build is for device testing only. It is not a signed release and does
 
 ## Known validation boundary
 
-The ThreeJS renderer is a GPU-backed platform component. Widget tests deliberately use the 2D fallback and do not prove real GPU rendering, touch alignment, thermal behavior, or frame rate on a physical phone. A successful Android APK build proves compilation and packaging only. Final acceptance requires installing the artifact on an Android device and checking board rendering, taps, movement, and performance.
+The ThreeJS renderer is a GPU-backed platform component. The Android target now compiles with SDK 35 and NDK 28.2.13676358, as required by the flutter_angle renderer dependency. Widget tests deliberately use the 2D fallback and do not prove real GPU rendering, touch alignment, thermal behavior, or frame rate on a physical phone. A successful Android APK build proves compilation and packaging only. Final acceptance requires installing the artifact on an Android device and checking board rendering, taps, movement, and performance.
 
 The package publisher is marked unverified on pub.dev. This dependency was accepted for this implementation after explicit approval; its platform constraints and known issues should remain part of the release review.
