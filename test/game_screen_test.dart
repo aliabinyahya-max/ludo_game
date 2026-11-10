@@ -71,6 +71,36 @@ void main() {
       expect(tester.widget<ElevatedButton>(diceButton).onPressed, isNotNull);
     });
 
+    testWidgets('passes to the next human when no legal move exists',
+        (tester) async {
+      tester.view.physicalSize = const Size(1080, 1920);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: GameScreen(
+            seats: const {
+              PlayerColor.red: false,
+              PlayerColor.green: false,
+            },
+            diceRoller: () => 5,
+          ),
+        ),
+      );
+
+      await tester.tap(find.byType(ElevatedButton).first);
+      await tester.pump(const Duration(milliseconds: 351));
+      expect(find.textContaining('لا توجد نقلة ممكنة'), findsOneWidget);
+      await tester.pump(const Duration(milliseconds: 701));
+
+      expect(find.textContaining('دور أخضر'), findsOneWidget);
+      expect(tester.widget<ElevatedButton>(
+        find.byType(ElevatedButton).first,
+      ).onPressed, isNotNull);
+    });
+
     testWidgets('cycles human and AI turns for 2-4 player configurations',
         (tester) async {
       tester.view.physicalSize = const Size(1080, 1920);
