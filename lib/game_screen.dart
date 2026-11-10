@@ -18,6 +18,7 @@ class GameScreen extends StatefulWidget {
   final AIDifficulty aiDifficulty;
   final bool soundEnabled;
   final Map<String, dynamic>? resumeData;
+  final String languageCode;
 
   const GameScreen({
     super.key,
@@ -27,6 +28,7 @@ class GameScreen extends StatefulWidget {
     this.aiDifficulty = AIDifficulty.medium,
     this.soundEnabled = true,
     this.resumeData,
+    this.languageCode = 'ar',
   });
 
   @override
@@ -101,7 +103,7 @@ class _GameScreenState extends State<GameScreen> {
 
   LudoPlayer get currentPlayer => players[currentPlayerIndex];
 
-  String _text(String ar, String en) => ludoText(context, ar, en);
+  String _text(String ar, String en) => widget.languageCode == 'en' ? en : ar;
 
   String _colorLabel(PlayerColor color) {
     switch (color) {
