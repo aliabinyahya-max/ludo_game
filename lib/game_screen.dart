@@ -7,6 +7,7 @@ import 'ludo_logic.dart';
 import 'ludo_board.dart';
 import 'ludo_board_3d.dart';
 import 'local_game_store.dart';
+import 'app_strings.dart';
 
 class GameScreen extends StatefulWidget {
   /// Map of color -> isAI. Colors not present are not in the game.
@@ -94,11 +95,22 @@ class _GameScreenState extends State<GameScreen> {
         movable = engine.movableTokens(currentPlayer, lastDice!);
       }
     }
-    message = 'دور ${players[currentPlayerIndex].color.label}: ارمِ النرد';
+    message = _text('دور ${_colorLabel(players[currentPlayerIndex].color)}: ارمِ النرد', '${_colorLabel(players[currentPlayerIndex].color)} turn: roll the dice');
     _maybeTriggerAI();
   }
 
   LudoPlayer get currentPlayer => players[currentPlayerIndex];
+
+  String _text(String ar, String en) => ludoText(context, ar, en);
+
+  String _colorLabel(PlayerColor color) {
+    switch (color) {
+      case PlayerColor.red: return _text('أحمر', 'Red');
+      case PlayerColor.green: return _text('أخضر', 'Green');
+      case PlayerColor.yellow: return _text('أصفر', 'Yellow');
+      case PlayerColor.blue: return _text('أزرق', 'Blue');
+    }
+  }
 
   void _playSound({bool alert = false}) {
     if (!widget.soundEnabled) return;
@@ -117,7 +129,7 @@ class _GameScreenState extends State<GameScreen> {
         currentPlayerIndex = (currentPlayerIndex + 1) % players.length;
         turnTracker.reset();
       }
-      message = 'دور ${currentPlayer.color.label}: ارمِ النرد';
+      message = _text('دور ${_colorLabel(currentPlayer.color)}: ارمِ النرد', '${_colorLabel(currentPlayer.color)} turn: roll the dice');
     });
     unawaited(_persistMatch());
     _maybeTriggerAI();
@@ -176,7 +188,7 @@ class _GameScreenState extends State<GameScreen> {
           turnTransitioning = true;
           lastDice = null;
           movable = [];
-          message = '${currentPlayer.color.label} رمى 6 للمرة الثالثة — تم إلغاء الدور';
+          message = _text('${_colorLabel(currentPlayer.color)} رمى 6 للمرة الثالثة — تم إلغاء الدور', '${_colorLabel(currentPlayer.color)} rolled three sixes — turn cancelled');
         });
         Future.delayed(const Duration(milliseconds: 700), () {
           if (!mounted) return;
@@ -251,18 +263,18 @@ class _GameScreenState extends State<GameScreen> {
 
     setState(() {
       if (result.captured.isNotEmpty) {
-        message = '${currentPlayer.color.label} أكل مهرة! 🎉';
+        message = _text('${_colorLabel(currentPlayer.color)} أكل مهرة! 🎉', '${_colorLabel(currentPlayer.color)} captured a token! 🎉');
       } else if (token.finished) {
-        message = '${currentPlayer.color.label} أوصل مهرة للبيت 🏠';
+        message = _text('${_colorLabel(currentPlayer.color)} أوصل مهرة للبيت 🏠', '${_colorLabel(currentPlayer.color)} brought a token home 🏠');
       } else {
-        message = '${currentPlayer.color.label} حرّك مهرة';
+        message = _text('${_colorLabel(currentPlayer.color)} حرّك مهرة', '${_colorLabel(currentPlayer.color)} moved a token');
       }
     });
 
     if (currentPlayer.hasWon) {
       setState(() {
         gameOver = true;
-        message = '🏆 ${currentPlayer.color.label} فاز باللعبة!';
+        message = _text('🏆 ${_colorLabel(currentPlayer.color)} فاز باللعبة!', '🏆 ${_colorLabel(currentPlayer.color)} won the game!');
       });
       _playSound(alert: true);
       await _store.recordCompletedMatch({
@@ -293,7 +305,7 @@ class _GameScreenState extends State<GameScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('لودو')),
+      appBar: AppBar(title: Text(_text('لودو', 'Ludo'))),
       body: SafeArea(
         child: Column(
           children: [
@@ -315,12 +327,12 @@ class _GameScreenState extends State<GameScreen> {
                       ),
                       child: Column(
                         children: [
-                          Text(p.color.label,
+                          Text(_colorLabel(p.color),
                               style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   color:
                                       isTurn ? Colors.white : Colors.black87)),
-                          Text(p.isAI ? 'كمبيوتر' : 'لاعب',
+                          Text(p.isAI ? _text('كمبيوتر', 'Computer') : _text('لاعب', 'Player'),
                               style: TextStyle(
                                   fontSize: 11,
                                   color: isTurn
@@ -399,7 +411,7 @@ class _GameScreenState extends State<GameScreen> {
                     ),
                     label: Text(rolling
                         ? '...'
-                        : (lastDice?.toString() ?? 'ارمِ النرد')),
+                        : (lastDice?.toString() ?? _text('ارمِ النرد', 'Roll dice'))),
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 28, vertical: 14),
@@ -410,7 +422,7 @@ class _GameScreenState extends State<GameScreen> {
                     const SizedBox(width: 12),
                     OutlinedButton(
                       onPressed: () => Navigator.of(context).pop(),
-                      child: const Text('رجوع للقائمة'),
+                      child: Text(_text('رجوع للقائمة', 'Back to menu')),
                     ),
                   ],
                 ],
