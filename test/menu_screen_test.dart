@@ -2,12 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ludo_game/app_theme.dart';
 import 'package:ludo_game/game_screen.dart';
+import 'package:ludo_game/main.dart' as app;
 import 'package:ludo_game/menu_screen.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('Premium menu and player configuration', () {
+    testWidgets('app shell enforces Arabic right-to-left direction', (tester) async {
+      await tester.pumpWidget(const app.LudoApp());
+      final menuContext = tester.element(find.byType(MenuScreen));
+      expect(Directionality.of(menuContext), TextDirection.rtl);
+    });
+
     testWidgets('uses the premium dark visual system', (tester) async {
       await tester.pumpWidget(
         MaterialApp(theme: LudoTheme.dark, home: const MenuScreen()),
