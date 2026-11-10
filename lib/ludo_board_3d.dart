@@ -162,8 +162,9 @@ class _LudoBoard3DState extends State<LudoBoard3D> {
       }
     });
     } catch (error, stackTrace) {
+      debugPrint('LudoBoard3D setup failed: $error\\n$stackTrace');
       widget.onError?.call(error, stackTrace);
-      rethrow;
+      return;
     }
   }
 
@@ -320,6 +321,7 @@ class _LudoBoard3DState extends State<LudoBoard3D> {
     try {
       return threeJs.build();
     } catch (error, stackTrace) {
+      debugPrint('LudoBoard3D render failed: $error\\n$stackTrace');
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) widget.onError?.call(error, stackTrace);
       });
