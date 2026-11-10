@@ -186,10 +186,11 @@ class _MenuScreenState extends State<MenuScreen> {
             style: Theme.of(context).textTheme.bodyMedium,
           ),
           const SizedBox(height: 18),
-          const Row(
+          const Wrap(
+            spacing: 8,
+            runSpacing: 8,
             children: [
               _FeaturePill(icon: Icons.groups_rounded, label: '2–4 لاعبين'),
-              SizedBox(width: 8),
               _FeaturePill(icon: Icons.wifi_off_rounded, label: 'بدون إنترنت'),
             ],
           ),
