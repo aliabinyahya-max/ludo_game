@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ludo_game/game_screen.dart';
 import 'package:ludo_game/ludo_data.dart';
+import 'package:ludo_game/ludo_board.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -150,6 +151,35 @@ void main() {
         expect(find.textContaining('دور أحمر'), findsOneWidget);
         await tester.pumpWidget(const SizedBox.shrink());
       }
+    });
+
+    testWidgets('falls back to the 2D board when 3D initialization times out',
+        (tester) async {
+      tester.view.physicalSize = const Size(1080, 1920);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      SharedPreferences.setMockInitialValues({});
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: GameScreen(
+            seats: const {
+              PlayerColor.red: false,
+              PlayerColor.green: false,
+            },
+            use3DBoard: true,
+            boardInitializationTimeout: const Duration(milliseconds: 100),
+          ),
+        ),
+      );
+
+      await tester.pump(const Duration(milliseconds: 101));
+      await tester.pump();
+
+      expect(find.textContaining('تم التبديل إلى اللوحة البديلة'), findsOneWidget);
+      expect(find.byType(LudoBoard), findsOneWidget);
+      expect(tester.takeException(), isNull);
     });
   });
 }
