@@ -36,7 +36,9 @@ void main() {
 
     testWidgets('starts a match with configured human and AI seats', (tester) async {
       await tester.pumpWidget(const MaterialApp(home: MenuScreen()));
-      await tester.tap(find.text('ابدأ المباراة'));
+      final start = find.text('ابدأ المباراة');
+      await tester.ensureVisible(start);
+      await tester.tap(start);
       await tester.pumpAndSettle();
 
       expect(find.byType(GameScreen), findsOneWidget);
