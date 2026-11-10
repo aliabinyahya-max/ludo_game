@@ -10,6 +10,9 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('Premium menu and player configuration', () {
+    setUp(() {
+      SharedPreferences.setMockInitialValues({});
+    });
     testWidgets('app shell enforces Arabic right-to-left direction', (tester) async {
       SharedPreferences.setMockInitialValues({});
       await tester.pumpWidget(const app.LudoApp());
