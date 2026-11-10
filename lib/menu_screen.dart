@@ -286,7 +286,7 @@ class _MenuScreenState extends State<MenuScreen> {
             style: Theme.of(context).textTheme.bodyMedium,
           ),
           const SizedBox(height: 18),
-          const Wrap(
+          Wrap(
             spacing: 8,
             runSpacing: 8,
             children: [
