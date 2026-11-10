@@ -4,14 +4,21 @@ import 'ludo_data.dart';
 import 'ludo_models.dart';
 import 'ludo_logic.dart';
 import 'ludo_board.dart';
+import 'ludo_board_3d.dart';
 
 class GameScreen extends StatefulWidget {
   /// Map of color -> isAI. Colors not present are not in the game.
   final Map<PlayerColor, bool> seats;
 
   final int Function()? diceRoller;
+  final bool use3DBoard;
 
-  const GameScreen({super.key, required this.seats, this.diceRoller});
+  const GameScreen({
+    super.key,
+    required this.seats,
+    this.diceRoller,
+    this.use3DBoard = true,
+  });
 
   @override
   State<GameScreen> createState() => _GameScreenState();
@@ -230,21 +237,46 @@ class _GameScreenState extends State<GameScreen> {
             ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Text(message,
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 240),
+                transitionBuilder: (child, animation) => FadeTransition(
+                  opacity: animation,
+                  child: SlideTransition(
+                    position: Tween<Offset>(
+                      begin: const Offset(0, 0.18),
+                      end: Offset.zero,
+                    ).animate(animation),
+                    child: child,
+                  ),
+                ),
+                child: Text(
+                  message,
+                  key: ValueKey(message),
                   textAlign: TextAlign.center,
                   style: const TextStyle(
-                      fontSize: 15, fontWeight: FontWeight.w600)),
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
             ),
             const SizedBox(height: 8),
             Expanded(
               child: Center(
                 child: Padding(
                   padding: const EdgeInsets.all(12),
-                  child: LudoBoard(
-                    players: players,
-                    highlightedTokens: movable,
-                    onTokenTap: _onTokenTap,
-                  ),
+                  child: widget.use3DBoard
+                      ? LudoBoard3D(
+                          players: players,
+                          highlightedTokens: movable,
+                          onTokenTap: _onTokenTap,
+                          rolling: rolling,
+                        )
+                      : LudoBoard(
+                          players: players,
+                          highlightedTokens: movable,
+                          onTokenTap: _onTokenTap,
+                        ),
                 ),
               ),
             ),
@@ -261,7 +293,12 @@ class _GameScreenState extends State<GameScreen> {
                             !turnTransitioning)
                         ? _roll
                         : null,
-                    icon: const Icon(Icons.casino),
+                    icon: AnimatedRotation(
+                      turns: rolling ? 0.5 : 0,
+                      duration: const Duration(milliseconds: 320),
+                      curve: Curves.easeInOut,
+                      child: const Icon(Icons.casino),
+                    ),
                     label: Text(rolling
                         ? '...'
                         : (lastDice?.toString() ?? 'ارمِ النرد')),
