@@ -2,7 +2,7 @@ name: Validate Flutter
 
 on:
   push:
-    branches: [main, master]
+    branches: [main, master, feat/3d-board-animations-phase-03-04-20261110]
   pull_request:
     branches: [main, master, fix/ludo-rules-tests-20261110, feat/premium-menu-phase-01-02-20261110]
   workflow_dispatch:
