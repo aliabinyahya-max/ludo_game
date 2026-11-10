@@ -430,6 +430,28 @@ void main() {
         AIDifficulty.expert,
       ]));
     });
+
+    test('hard AI avoids an exposed advance that medium prefers', () {
+      final red = LudoPlayer(color: PlayerColor.red, isAI: true);
+      final green = LudoPlayer(color: PlayerColor.green, isAI: false);
+      final engine = LudoEngine([red, green]);
+
+      // Red token 0 is further advanced but would land on a cell
+      // reachable by green next turn. Red token 1 lands on safe cell 8.
+      red.tokens[0].step = 9;
+      red.tokens[1].step = 7;
+      green.tokens[0].step = 48; // Green global cell 9; one roll reaches 10.
+
+      final medium = engine.chooseAIMove(
+        red, 1, difficulty: AIDifficulty.medium,
+      );
+      final hard = engine.chooseAIMove(
+        red, 1, difficulty: AIDifficulty.hard,
+      );
+
+      expect(medium, same(red.tokens[0]));
+      expect(hard, same(red.tokens[1]));
+    });
   });
 
 }
