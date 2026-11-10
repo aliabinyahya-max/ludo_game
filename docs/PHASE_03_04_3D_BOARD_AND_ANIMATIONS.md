@@ -20,7 +20,7 @@
 
 ## Android build validation
 
-The GitHub Actions validation workflow now runs:
+The GitHub Actions validation workflow installs CMake 3.31.4 for flutter_angle, then runs:
 
 1. `flutter pub get`
 2. `flutter analyze`
