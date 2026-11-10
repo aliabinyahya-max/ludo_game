@@ -78,3 +78,13 @@
 - الإصلاح الإضافي: إزالة الاعتماد على action الذي يطلب الحزمة القديمة، واستخدام Android SDK command-line tools المثبتة مسبقاً على GitHub-hosted Ubuntu runner، مع تحديد مسار `sdkmanager` والتحقق من إصداره قبل تثبيت الحزم المطلوبة.
 - Commit الإصلاح: `b6bf7ec398922dc0f4cd5373eb1174ca9cb98761`.
 - النتيجة الجديدة لم تُعتمد بعد؛ يلزم اكتمال CI التالي.
+
+## متابعة CI رقم 213/214 — إصلاح خطأ قبول التراخيص
+
+- التشغيلان `42780479279` (push) و`42780483585` (pull_request) فشلا في الخطوة `Install and verify Android SDK components`، قبل `flutter pub get` والتحليل والاختبارات.
+- السجل أكد أن `sdkmanager --licenses` وصل إلى `All SDK package licenses accepted`، ثم انتهت الخطوة بالخطأ `yes: standard output: Broken pipe` ورمز خروج 1.
+- السبب الجذري: تفعيل `set -o pipefail` جعل SIGPIPE الطبيعي لأمر `yes` (بعد أن أغلق sdkmanager الإدخال عقب قبول التراخيص) يفشل الـ pipeline، رغم نجاح sdkmanager نفسه. هذا ليس رفضاً للتراخيص ولا نقصاً في حزم SDK.
+- الإصلاح في `.github/workflows/build.yml`: تعطيل `pipefail` مؤقتاً لخطوة `yes | sdkmanager --licenses` فقط، وقراءة `PIPESTATUS[1]` للتحقق من رمز خروج sdkmanager الحقيقي، ثم إعادة `pipefail` قبل بقية الأوامر. بذلك لا يتم تجاهل فشل sdkmanager.
+- Commit الإصلاح: `31dea195c8058eed8ea5aec7675083fbbf3a8250`.
+- الحالة بعد الإصلاح: بانتظار تشغيل CI جديد. لا يمكن إعلان النجاح قبل أن تمر خطوة تثبيت/التحقق ثم `flutter pub get` و`flutter analyze` و`flutter test`.
+- لم يتم تشغيل Gradle أو بناء APK/AAB أو اختبار جهاز؛ إذن البناء السابق لا يزال مستهلكاً.
