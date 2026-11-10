@@ -33,8 +33,12 @@ class _LudoAppState extends State<LudoApp> {
     ]);
     if (!mounted) return;
     setState(() {
-      _themeName = values[0] as String;
-      _languageCode = values[1] as String;
+      _themeName = ['emerald', 'royal', 'ocean'].contains(values[0])
+          ? values[0] as String
+          : 'emerald';
+      _languageCode = ['ar', 'en'].contains(values[1])
+          ? values[1] as String
+          : 'ar';
     });
   }
 
