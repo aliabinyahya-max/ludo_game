@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ludo_game/app_theme.dart';
 import 'package:ludo_game/game_screen.dart';
 import 'package:ludo_game/main.dart' as app;
@@ -10,6 +11,7 @@ void main() {
 
   group('Premium menu and player configuration', () {
     testWidgets('app shell enforces Arabic right-to-left direction', (tester) async {
+      SharedPreferences.setMockInitialValues({});
       await tester.pumpWidget(const app.LudoApp());
       final menuContext = tester.element(find.byType(MenuScreen));
       expect(Directionality.of(menuContext), TextDirection.rtl);
