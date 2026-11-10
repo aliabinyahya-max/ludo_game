@@ -2,16 +2,14 @@
 
 Date: 2026-11-10
 Branch: `feat/3d-board-animations-phase-03-04-20261110`
-Validated source commit: `2586eff14411890ef792a9b887f38f50a547dbe9`
 
-## Implemented
+## Implemented in source
 
 ### Four AI difficulty profiles
 - Easy: random selection among legal moves.
 - Medium: tactical priority for captures, finishing, releasing base tokens, and progress.
 - Hard: weighted evaluation including safe cells, captures, own stacks, and exposure to opponent capture.
 - Expert: stronger risk penalty and additional home-column/stack weighting.
-- Setup screen exposes all four levels and passes the selected level into computer turns.
 
 ### Sound effects
 - Flutter platform system sounds for dice interaction, moves, captures, and wins.
@@ -21,43 +19,44 @@ Validated source commit: `2586eff14411890ef792a9b887f38f50a547dbe9`
 ### Statistics and match history
 - Completed matches record winner, player count, total captures, duration, and completion timestamp.
 - Local history is capped at 50 records; the menu displays the latest five.
-- History and statistics are device-local, not cloud-synchronized.
+- History is device-local, not cloud-synchronized.
 
 ### Save and resume
 - Match snapshots store player colors/types, token progress, active player, consecutive sixes, pending dice, capture count, and start time.
 - Resume action appears when a saved match exists.
-- State is saved after a legal roll and as a pending next-turn snapshot after a move, before the transition delay.
 - Persistence uses `shared_preferences`; no cloud backup is involved.
 
 ### Themes and languages
-- Emerald, Royal, and Ocean theme choices, saved locally.
-- Arabic and English locale choices.
-- Material, Widgets, and Cupertino localization delegates are registered for both locales.
-- Main menu and gameplay text are localized; Arabic remains default.
+- Emerald, Royal, and Ocean theme choices are saved locally.
+- Arabic and English locale choices are available.
+- Arabic remains the default language.
 
-## Automated verification
-- CI run before the one-time build: [42776259314](https://github.com/aliabinyahya-max/ludo_game/actions/runs/42776259314)
-- `flutter pub get`: passed
-- `flutter analyze`: passed — no issues found
-- `flutter test`: passed — **55 tests**
-- Push and pull-request validation completed successfully.
+## Automated source verification
 
-## Single authorized Android build
-- Build run: [42776828452](https://github.com/aliabinyahya-max/ludo_game/actions/runs/42776828452)
-- Command: `flutter build apk --debug`
-- Result: **FAILED**; no APK artifact uploaded.
-- Direct cause: CMake `3.31.4` missing for `:flutter_angle:configureCMakeDebug[arm64-v8a]`.
-- Additional warning: `shared_preferences_android` requires compile SDK 36; source has since been raised from 35 to 36.
-- Workflow now provisions CMake 3.31.4, but this correction has not been build-verified.
-- The one-build authorization is consumed; no retry or second build will be run.
+- Previous full feature validation: CI run [42776259314](https://github.com/aliabinyahya-max/ludo_game/actions/runs/42776259314), including 55 tests.
+- The renderer fallback correction added a widget test for 3D initialization timeout.
+- Latest PR validation for commit `6730e317c02a8c7c2ef9fd9945aad5b3730a5cf7`: [42825983734](https://github.com/aliabinyahya-max/ludo_game/actions/runs/42825983734) — success, including `flutter pub get`, `flutter analyze`, and `flutter test`.
+- Push validation for the same commit: [42825976100](https://github.com/aliabinyahya-max/ludo_game/actions/runs/42825976100) — in progress at the time of this update.
+- No build step is present in subsequent validation workflow runs.
 
-## Remaining acceptance work
-- Physical Android testing is blocked because no APK was produced.
-- 3D rendering, GPU stability, touch, sound, save/resume and match completion still need device acceptance.
-- Package ID, production signing, launcher icon and final target-SDK policy remain release blockers.
+## Android build and device status
 
-## Post-build-failure source validation
-- Follow-up CI run: [42777651295](https://github.com/aliabinyahya-max/ludo_game/actions/runs/42777651295)
-- `flutter analyze`: no issues found.
-- `flutter test`: **55 tests passed**.
-- Build job was skipped by design; the one-time build authorization remains consumed.
+- The single authorized debug build succeeded in [42781991508](https://github.com/aliabinyahya-max/ludo_game/actions/runs/42781991508); artifact upload succeeded.
+- User confirmed installation.
+- Main menu launch and visibility passed according to user report.
+- Starting a match produced a blank board area on the device. Renderer fallback is implemented in source but not yet device-verified.
+- No further APK/AAB build is authorized.
+
+## Remaining acceptance and release blockers
+
+- Device verification of the renderer fallback and full gameplay.
+- Device verification of 3D GPU rendering, touch, animations, sound, save/resume, themes, languages, and match completion.
+- Permanent Android application ID decision; current ID remains `com.example.ludo_game`.
+- Production signing configuration; release build type must not ship with debug signing.
+- Confirm current Play target SDK requirements before release; configured target SDK remains 34.
+- Replace default launcher icon with approved app branding.
+- Review release configuration and complete final release checks.
+
+## Status
+
+Feature source implementation and automated tests are substantially complete. Physical-device acceptance is **not complete**, and the application is **not release-ready**.
