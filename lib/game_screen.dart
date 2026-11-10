@@ -18,6 +18,7 @@ class GameScreen extends StatefulWidget {
 class _GameScreenState extends State<GameScreen> {
   late LudoEngine engine;
   late List<LudoPlayer> players;
+  final LudoTurnTracker turnTracker = LudoTurnTracker();
   int currentPlayerIndex = 0;
   int? lastDice;
   List<LudoToken> movable = [];
@@ -45,6 +46,7 @@ class _GameScreenState extends State<GameScreen> {
       movable = [];
       if (!extraTurn) {
         currentPlayerIndex = (currentPlayerIndex + 1) % players.length;
+        turnTracker.reset();
       }
       message = 'دور ${currentPlayer.color.label}: ارمِ النرد';
     });
@@ -67,6 +69,21 @@ class _GameScreenState extends State<GameScreen> {
     Future.delayed(const Duration(milliseconds: 350), () {
       if (!mounted) return;
       final dice = engine.rollDice();
+      final turnCancelled = turnTracker.registerRoll(dice);
+      if (turnCancelled) {
+        setState(() {
+          rolling = false;
+          lastDice = null;
+          movable = [];
+          message = '${currentPlayer.color.label} رمى 6 للمرة الثالثة — تم إلغاء الدور';
+        });
+        Future.delayed(const Duration(milliseconds: 700), () {
+          if (!mounted) return;
+          _nextTurn();
+        });
+        return;
+      }
+
       final opts = engine.movableTokens(currentPlayer, dice);
       setState(() {
         rolling = false;
@@ -146,7 +163,10 @@ class _GameScreenState extends State<GameScreen> {
       return;
     }
 
-    final extra = dice == 6;
+    final extra = turnTracker.grantsExtraRoll(
+      dice: dice,
+      captured: result.captured.isNotEmpty,
+    );
     await Future.delayed(const Duration(milliseconds: 500));
 
     if (!mounted) return;
