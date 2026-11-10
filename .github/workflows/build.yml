@@ -4,7 +4,7 @@ on:
   push:
     branches: [main, master]
   pull_request:
-    branches: [main, master, fix/ludo-rules-tests-20261110]
+    branches: [main, master, fix/ludo-rules-tests-20261110, feat/premium-menu-phase-01-02-20261110]
   workflow_dispatch:
 
 jobs:
