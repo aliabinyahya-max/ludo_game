@@ -15,6 +15,8 @@ class LudoApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'لودو',
+      locale: const Locale('ar'),
+      supportedLocales: const [Locale('ar')],
       theme: LudoTheme.dark,
       home: const MenuScreen(),
     );
