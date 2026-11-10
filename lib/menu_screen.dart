@@ -17,6 +17,7 @@ class MenuScreen extends StatefulWidget {
 class _MenuScreenState extends State<MenuScreen> {
   // null = empty seat, false = human, true = computer.
   AIDifficulty _aiDifficulty = AIDifficulty.medium;
+  bool _soundEnabled = true;
 
   final Map<PlayerColor, bool?> seatState = {
     PlayerColor.red: false,
@@ -106,6 +107,14 @@ class _MenuScreenState extends State<MenuScreen> {
                             setState(() => _aiDifficulty = level);
                           }
                         },
+                      ),
+                      SwitchListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: const Text('المؤثرات الصوتية'),
+                        subtitle: const Text('أصوات النرد والحركة والتنبيهات'),
+                        value: _soundEnabled,
+                        onChanged: (value) =>
+                            setState(() => _soundEnabled = value),
                       ),
                       const SizedBox(height: 14),
                       ...PlayerColor.values.map(_buildSeatCard),
@@ -368,6 +377,7 @@ class _MenuScreenState extends State<MenuScreen> {
           seats: seats,
           use3DBoard: widget.use3DBoard,
           aiDifficulty: _aiDifficulty,
+          soundEnabled: _soundEnabled,
         ),
       ),
     );
