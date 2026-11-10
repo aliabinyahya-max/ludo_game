@@ -12,12 +12,14 @@ class GameScreen extends StatefulWidget {
 
   final int Function()? diceRoller;
   final bool use3DBoard;
+  final AIDifficulty aiDifficulty;
 
   const GameScreen({
     super.key,
     required this.seats,
     this.diceRoller,
     this.use3DBoard = true,
+    this.aiDifficulty = AIDifficulty.medium,
   });
 
   @override
@@ -116,7 +118,7 @@ class _GameScreenState extends State<GameScreen> {
       if (currentPlayer.isAI) {
         Future.delayed(const Duration(milliseconds: 500), () {
           if (!mounted) return;
-          final choice = engine.chooseAIMove(currentPlayer, dice);
+          final choice = engine.chooseAIMove(currentPlayer, dice, difficulty: widget.aiDifficulty);
           _performMove(choice, dice);
         });
       } else if (opts.length == 1) {
