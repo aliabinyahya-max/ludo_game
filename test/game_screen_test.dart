@@ -41,8 +41,7 @@ void main() {
         final token = find.byKey(ValueKey(tokenKey));
         expect(token, findsOneWidget);
         await tester.tap(token);
-        await tester.pump(const Duration(milliseconds: 141));
-        await tester.pump(const Duration(milliseconds: 501));
+        await tester.pumpAndSettle();
       }
 
       await rollAndMove('token-red-0');
