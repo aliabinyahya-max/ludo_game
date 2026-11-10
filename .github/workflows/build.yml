@@ -42,6 +42,13 @@ jobs:
       - name: Run automated tests
         run: flutter test
 
+      - name: Install CMake required by flutter_angle
+        run: |
+          SDK_ROOT="${ANDROID_HOME:-${ANDROID_SDK_ROOT}}"
+          SDKMANAGER="$(find "$SDK_ROOT/cmdline-tools" -name sdkmanager -type f | head -n 1)"
+          yes | "$SDKMANAGER" --licenses >/dev/null
+          "$SDKMANAGER" "cmake;3.31.4"
+
       - name: Build Android debug APK
         run: flutter build apk --debug
 
