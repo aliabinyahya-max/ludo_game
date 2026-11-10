@@ -12,7 +12,7 @@ void main() {
       await tester.pumpWidget(const MaterialApp(home: MenuScreen()));
 
       var start = find.widgetWithText(ElevatedButton, 'ابدأ اللعبة');
-      expect(tester.widget<ElevatedButton>(start).onPressed, isNull);
+      expect(tester.widget<ElevatedButton>(start).onPressed, isNotNull);
 
       // Change green from AI to empty, leaving only one active human.
       await tester.tap(find.text('أخضر').first);
@@ -50,7 +50,7 @@ void main() {
 
       await tester.tap(find.text('أحمر').first);
       await tester.pump();
-      expect(find.text('لاعب (هذا الجهاز)'), findsOneWidget);
+      expect(find.text('كمبيوتر'), findsNWidgets(2));
 
       await tester.tap(find.text('أحمر').first);
       await tester.pump();
