@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'app_theme.dart';
+import 'app_strings.dart';
 import 'game_screen.dart';
 import 'ludo_logic.dart';
 import 'local_game_store.dart';
@@ -8,8 +9,19 @@ import 'ludo_data.dart';
 
 class MenuScreen extends StatefulWidget {
   final bool use3DBoard;
+  final String themeName;
+  final String languageCode;
+  final ValueChanged<String>? onThemeChanged;
+  final ValueChanged<String>? onLanguageChanged;
 
-  const MenuScreen({super.key, this.use3DBoard = true});
+  const MenuScreen({
+    super.key,
+    this.use3DBoard = true,
+    this.themeName = 'emerald',
+    this.languageCode = 'ar',
+    this.onThemeChanged,
+    this.onLanguageChanged,
+  });
 
   @override
   State<MenuScreen> createState() => _MenuScreenState();
@@ -18,6 +30,16 @@ class MenuScreen extends StatefulWidget {
 class _MenuScreenState extends State<MenuScreen> {
   // null = empty seat, false = human, true = computer.
   AIDifficulty _aiDifficulty = AIDifficulty.medium;
+  String _text(String ar, String en) => ludoText(context, ar, en);
+
+  String _colorLabel(PlayerColor color) {
+    switch (color) {
+      case PlayerColor.red: return _text('أحمر', 'Red');
+      case PlayerColor.green: return _text('أخضر', 'Green');
+      case PlayerColor.yellow: return _text('أصفر', 'Yellow');
+      case PlayerColor.blue: return _text('أزرق', 'Blue');
+    }
+  }
   bool _soundEnabled = true;
   Map<String, dynamic>? _savedMatch;
   List<Map<String, dynamic>> _history = [];
@@ -65,19 +87,19 @@ class _MenuScreenState extends State<MenuScreen> {
   String _difficultyLabel(AIDifficulty level) {
     switch (level) {
       case AIDifficulty.easy:
-        return 'سهل';
+        return _text('سهل', 'Easy');
       case AIDifficulty.medium:
-        return 'متوسط';
+        return _text('متوسط', 'Medium');
       case AIDifficulty.hard:
-        return 'صعب';
+        return _text('صعب', 'Hard');
       case AIDifficulty.expert:
-        return 'خبير';
+        return _text('خبير', 'Expert');
     }
   }
 
   String _seatLabel(bool? value) {
-    if (value == null) return 'مقعد فارغ';
-    return value ? 'الكمبيوتر' : 'لاعب بشري';
+    if (value == null) return _text('مقعد فارغ', 'Empty seat');
+    return value ? _text('الكمبيوتر', 'Computer') : _text('لاعب بشري', 'Human player');
   }
 
   IconData _seatIcon(bool? value) {
@@ -117,14 +139,14 @@ class _MenuScreenState extends State<MenuScreen> {
                       if (_history.isNotEmpty) _buildHistoryPanel(),
                       const SizedBox(height: 28),
                       _buildSectionHeader(
-                        title: 'تجهيز المباراة',
-                        subtitle: 'اختر من سيشارك في اللعب',
+                        title: _text('تجهيز المباراة', 'Match setup'),
+                        subtitle: _text('اختر من سيشارك في اللعب', 'Choose who will play'),
                       ),
                       const SizedBox(height: 14),
                       DropdownButtonFormField<AIDifficulty>(
                         initialValue: _aiDifficulty,
                         decoration: const InputDecoration(
-                          labelText: 'مستوى ذكاء الكمبيوتر',
+                          labelText: _text('مستوى ذكاء الكمبيوتر', 'Computer difficulty'),
                           border: OutlineInputBorder(),
                         ),
                         items: AIDifficulty.values
@@ -141,8 +163,8 @@ class _MenuScreenState extends State<MenuScreen> {
                       ),
                       SwitchListTile(
                         contentPadding: EdgeInsets.zero,
-                        title: const Text('المؤثرات الصوتية'),
-                        subtitle: const Text('أصوات النرد والحركة والتنبيهات'),
+                        title: Text(_text('المؤثرات الصوتية', 'Sound effects')),
+                        subtitle: Text(_text('أصوات النرد والحركة والتنبيهات', 'Dice, movement and alert sounds')),
                         value: _soundEnabled,
                         onChanged: (value) {
                           setState(() => _soundEnabled = value);
@@ -161,11 +183,11 @@ class _MenuScreenState extends State<MenuScreen> {
                       ElevatedButton.icon(
                         onPressed: canStart ? _startGame : null,
                         icon: const Icon(Icons.play_arrow_rounded, size: 26),
-                        label: const Text('ابدأ المباراة'),
+                        label: Text(_text('ابدأ المباراة', 'Start match')),
                       ),
                       const SizedBox(height: 12),
                       Text(
-                        'اللعب المحلي • من لاعبين إلى أربعة لاعبين',
+                        _text('اللعب المحلي • من لاعبين إلى أربعة لاعبين', 'Local play • 2 to 4 players'),
                         textAlign: TextAlign.center,
                         style: Theme.of(context).textTheme.bodyMedium,
                       ),
@@ -209,7 +231,7 @@ class _MenuScreenState extends State<MenuScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text('LUDO', style: Theme.of(context).textTheme.titleLarge),
-              Text('اللعب يجمعنا', style: Theme.of(context).textTheme.bodyMedium),
+              Text(_text('اللعب يجمعنا', 'Play brings us together'), style: Theme.of(context).textTheme.bodyMedium),
             ],
           ),
         ),
@@ -319,7 +341,7 @@ class _MenuScreenState extends State<MenuScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(color.label, style: Theme.of(context).textTheme.titleMedium),
+                    Text(_colorLabel(color), style: Theme.of(context).textTheme.titleMedium),
                     const SizedBox(height: 3),
                     Text(_seatLabel(value), style: Theme.of(context).textTheme.bodyMedium),
                   ],
@@ -342,7 +364,7 @@ class _MenuScreenState extends State<MenuScreen> {
                     ),
                     const SizedBox(width: 6),
                     Text(
-                      isEmpty ? 'إضافة' : (value ? 'كمبيوتر' : 'بشري'),
+                      isEmpty ? _text('إضافة', 'Add') : (value ? _text('كمبيوتر', 'Computer') : _text('بشري', 'Human')),
                       style: TextStyle(
                         color: isEmpty ? LudoTheme.textSecondary : LudoTheme.emeraldLight,
                         fontSize: 12,
@@ -380,10 +402,10 @@ class _MenuScreenState extends State<MenuScreen> {
           Expanded(
             child: Text(
               canStart
-                  ? '$activeCount مقاعد مشاركة • $humanCount لاعب بشري'
+                  ? _text('$activeCount مقاعد مشاركة • $humanCount لاعب بشري', '$activeCount active seats • $humanCount human players')
                   : humanCount == 0
-                      ? 'أضف لاعباً بشرياً واحداً على الأقل'
-                      : 'أضف مقعداً ثانياً لبدء المباراة',
+                      ? _text('أضف لاعباً بشرياً واحداً على الأقل', 'Add at least one human player')
+                      : _text('أضف مقعداً ثانياً لبدء المباراة', 'Add a second seat to start'),
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: canStart ? LudoTheme.emeraldLight : LudoTheme.textSecondary,
                     fontWeight: FontWeight.w600,
@@ -404,15 +426,15 @@ class _MenuScreenState extends State<MenuScreen> {
     return Card(
       child: ExpansionTile(
         leading: const Icon(Icons.query_stats_rounded),
-        title: Text('سجل المباريات والإحصائيات ($wins)'),
+        title: Text(_text('سجل المباريات والإحصائيات', 'Match history and statistics') + ' ($wins)'),
         children: _history.take(5).map((match) {
           final winner = match['winner']?.toString() ?? '—';
           final completed = match['completedAt']?.toString() ?? '';
           final captures = match['captures']?.toString() ?? '0';
           return ListTile(
             dense: true,
-            title: Text('الفائز: $winner'),
-            subtitle: Text('عمليات الأكل: $captures • $completed'),
+            title: Text(_text('الفائز: ', 'Winner: ') + winner),
+            subtitle: Text(_text('عمليات الأكل: ', 'Captures: ') + '$captures • $completed'),
           );
         }).toList(),
       ),
@@ -442,7 +464,7 @@ class _MenuScreenState extends State<MenuScreen> {
           resumeData: saved,
         ),
       ),
-    );
+    ).then((_) => _loadLocalData());
   }
 
   void _startGame() {
@@ -459,7 +481,7 @@ class _MenuScreenState extends State<MenuScreen> {
           soundEnabled: _soundEnabled,
         ),
       ),
-    );
+    ).then((_) => _loadLocalData());
   }
 }
 
