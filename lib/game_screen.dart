@@ -7,7 +7,6 @@ import 'ludo_logic.dart';
 import 'ludo_board.dart';
 import 'ludo_board_3d.dart';
 import 'local_game_store.dart';
-import 'app_strings.dart';
 
 class GameScreen extends StatefulWidget {
   /// Map of color -> isAI. Colors not present are not in the game.
