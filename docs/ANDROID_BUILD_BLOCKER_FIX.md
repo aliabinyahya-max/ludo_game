@@ -41,3 +41,12 @@ The workflow's SDK provisioning and package checks will be exercised by the next
 ## Result
 
 **SOURCE/CI HARDENING COMPLETED — ANDROID BUILD STILL UNVERIFIED.** The previously missing CMake and pinned NDK are now part of explicit CI SDK provisioning; the next validation run must confirm the provisioning step. A new explicit build authorization is required before any Android packaging attempt.
+
+
+## Follow-up CI failure and correction (2026-11-10)
+
+The first SDK-preflight workflow run failed inside `android-actions/setup-android@v3` because it attempted to install the obsolete SDK package `tools` (`Warning: Failed to find package 'tools'`). The SDK package installation, dependency resolution, analyzer and tests were therefore skipped.
+
+Correction: removed that setup action and now locate/use the Android command-line SDK manager already provisioned on GitHub-hosted Ubuntu runners. The workflow checks the sdkmanager executable and version before installing/verifying the pinned SDK platform, Build Tools, NDK and CMake packages. This remains a non-build workflow; no Gradle task or APK/AAB packaging is invoked.
+
+Correction commit: `b6bf7ec398922dc0f4cd5373eb1174ca9cb98761`. Await the subsequent CI result before declaring the phase verified.
