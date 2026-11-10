@@ -14,6 +14,9 @@ Branch: `feat/3d-board-animations-phase-03-04-20261110`
 
 ## Release blockers / unverified items
 - No APK/AAB compilation or packaging has been run after the Gradle correction.
+- `android/app/build.gradle` still declares generic application ID `com.example.ludo_game`; a final package identity has not been approved or configured.
+- The `release` build type currently uses `signingConfigs.debug`, which is not acceptable for a distributable release.
+- `targetSdk` is currently 34; its required release target must be checked against the distribution channel's current policy before release.
 - Android application ID, versioning, signing configuration, keystore handling, and release build settings require a dedicated audit against the current Android files before release.
 - No physical-device acceptance evidence exists.
 - Requested capabilities (four AI levels, sound, statistics, save/resume, theme selection, language selection) remain incomplete per the Phase 07 audit.
