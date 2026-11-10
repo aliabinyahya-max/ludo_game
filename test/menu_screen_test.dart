@@ -17,7 +17,7 @@ void main() {
 
     testWidgets('uses the premium dark visual system', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(theme: LudoTheme.dark, home: const MenuScreen()),
+        MaterialApp(theme: LudoTheme.dark, home: const MenuScreen(use3DBoard: false)),
       );
       expect(find.text('PREMIUM'), findsOneWidget);
       expect(find.text('مستعد للتحدي؟'), findsOneWidget);
@@ -28,7 +28,7 @@ void main() {
     });
 
     testWidgets('requires at least two active seats and one human', (tester) async {
-      await tester.pumpWidget(const MaterialApp(home: MenuScreen()));
+      await tester.pumpWidget(const MaterialApp(home: MenuScreen(use3DBoard: false)));
       final start = find.widgetWithText(ElevatedButton, 'ابدأ المباراة');
       expect(tester.widget<ElevatedButton>(start).onPressed, isNotNull);
 
@@ -42,7 +42,7 @@ void main() {
     });
 
     testWidgets('starts a match with configured human and AI seats', (tester) async {
-      await tester.pumpWidget(const MaterialApp(home: MenuScreen()));
+      await tester.pumpWidget(const MaterialApp(home: MenuScreen(use3DBoard: false)));
       final start = find.text('ابدأ المباراة');
       await tester.ensureVisible(start);
       await tester.tap(start);
@@ -57,7 +57,7 @@ void main() {
     });
 
     testWidgets('cycles a seat through human, AI, and empty states', (tester) async {
-      await tester.pumpWidget(const MaterialApp(home: MenuScreen()));
+      await tester.pumpWidget(const MaterialApp(home: MenuScreen(use3DBoard: false)));
       expect(find.text('بشري'), findsOneWidget);
       expect(find.text('كمبيوتر'), findsOneWidget);
       expect(find.text('مقعد فارغ'), findsNWidgets(2));
@@ -76,7 +76,7 @@ void main() {
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
-      await tester.pumpWidget(const MaterialApp(home: MenuScreen()));
+      await tester.pumpWidget(const MaterialApp(home: MenuScreen(use3DBoard: false)));
       expect(tester.takeException(), isNull);
       expect(find.text('ابدأ المباراة'), findsOneWidget);
     });
