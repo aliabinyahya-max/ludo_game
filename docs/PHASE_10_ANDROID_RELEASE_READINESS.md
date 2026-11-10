@@ -2,33 +2,37 @@
 
 Date: 2026-11-10
 Branch: `feat/3d-board-animations-phase-03-04-20261110`
-Audit type: source/configuration review and one authorized debug build attempt.
+Audit type: source/configuration review and one previously authorized debug build attempt; no build in this phase.
 
-## Verified configuration
+## Verified repository configuration
 - Flutter CI: 3.44.9
 - Java: 17
 - Android Gradle Plugin: 8.11.1
 - Kotlin Android plugin: 2.2.20
 - Gradle wrapper: 8.14.3
-- Compile SDK: **36** (raised after the one-time build reported a plugin requirement)
+- Compile SDK: 36
+- Build Tools (CI preflight): 35.0.0
+- NDK: 28.2.13676358
+- CMake: 3.31.4
 - Target SDK: 34
 - Minimum SDK: 21
 - Android manifest label: `لودو`
 
+AGP 8.11 requires Gradle 8.13+ and JDK 17, and supports up to API 36. The configured wrapper and Java satisfy those version requirements.
+
+## Phase 10 execution status
+The only authorized debug APK build attempt failed at `:flutter_angle:configureCMakeDebug[arm64-v8a]` because CMake 3.31.4 was missing from the runner. The same attempt reported a compile SDK 36 requirement from `shared_preferences_android`; compile SDK was raised to 36 afterward.
+
+The CI workflow now explicitly installs and verifies Android platform 36, Build Tools 35.0.0, NDK 28.2.13676358, CMake 3.31.4, and platform-tools. All Android build/artifact jobs have been removed from CI so the consumed one-time build cannot run accidentally.
+
 ## Remaining release blockers
-1. Android namespace and application ID remain `com.example.ludo_game`. A permanent package ID requires approval and has not been guessed.
-2. Release build type still uses `signingConfigs.debug`. A protected production keystore is required for a distributable release.
-3. Target SDK remains 34. Confirm the current Play policy and choose the final target before any release.
+1. Android namespace and application ID remain `com.example.ludo_game`. A permanent package ID requires a separate user decision.
+2. Release build type still uses `signingConfigs.debug`. A protected production keystore and secret-handling design are required.
+3. Target SDK remains 34. Confirm the current Play policy and choose the final target before release.
 4. Launcher icon still uses the Android platform default; a designed launcher/adaptive icon is outstanding.
-5. The one-time debug build attempt failed at `:flutter_angle:configureCMakeDebug[arm64-v8a]` because CMake `3.31.4` was not installed in the runner. The same build also reported that `shared_preferences_android` requires compile SDK 36; compile SDK has since been raised to 36.
-6. The feature-branch workflow now includes installation of CMake `3.31.4` before the device-test build, but this correction is **not build-verified**.
+5. The CMake/NDK/SDK provisioning correction has not yet been confirmed by a subsequent CI run.
+6. The Android Gradle configuration, native compilation, APK packaging, and device runtime remain unverified.
 7. No APK/AAB was produced or uploaded. No physical-device acceptance test has been performed.
 
-## Stage 10 result
-**SOURCE AUDIT COMPLETED — NOT RELEASE READY.** The source-level compile SDK correction and CMake provisioning step are in place, but they have not been compiled. Package identity, production signing, launcher icon, target-SDK policy confirmation, and successful build remain open. The single authorized build has been consumed and will not be repeated.
-
-## Post-correction non-build validation
-- CI run: [42777651295](https://github.com/aliabinyahya-max/ludo_game/actions/runs/42777651295)
-- `flutter analyze`: no issues found.
-- `flutter test`: 55 tests passed.
-- The Android build job was skipped on this later commit; no second build was attempted.
+## Result
+**SOURCE AUDIT COMPLETED — NOT RELEASE READY.** CI toolchain provisioning has been hardened, but until a non-build CI run confirms SDK installation and a separately authorized build succeeds, Android packaging remains unverified. The single prior build authorization remains consumed.
