@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'app_theme.dart';
 import 'local_game_store.dart';
@@ -59,6 +60,11 @@ class _LudoAppState extends State<LudoApp> {
       title: _languageCode == 'en' ? 'Ludo' : 'لودو',
       locale: Locale(_languageCode),
       supportedLocales: const [Locale('ar'), Locale('en')],
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
       theme: LudoTheme.forName(_themeName),
       builder: (context, child) => Directionality(
         textDirection:
