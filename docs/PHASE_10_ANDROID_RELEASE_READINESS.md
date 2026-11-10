@@ -2,25 +2,26 @@
 
 Date: 2026-11-10
 Branch: `feat/3d-board-animations-phase-03-04-20261110`
+Audit type: source/configuration review only; no compilation or packaging.
 
 ## Verified configuration
-- Flutter CI version: 3.44.9
+- Flutter CI: 3.44.9
 - Java: 17
 - Android Gradle Plugin: 8.11.1
 - Kotlin Android plugin: 2.2.20
 - Gradle wrapper: 8.14.3
-- Workflow: validation-only (`flutter pub get`, `flutter analyze`, `flutter test`)
-- CI runs 42739521519 and 42739515494: successful.
+- Compile SDK: 35
+- Target SDK: 34
+- Minimum SDK: 21
+- CI workflow runs dependency resolution, static analysis, and unit/widget tests only.
 
-## Release blockers / unverified items
-- No APK/AAB compilation or packaging has been run after the Gradle correction.
-- `android/app/build.gradle` still declares generic application ID `com.example.ludo_game`; a final package identity has not been approved or configured.
-- The `release` build type currently uses `signingConfigs.debug`, which is not acceptable for a distributable release.
-- `targetSdk` is currently 34; its required release target must be checked against the distribution channel's current policy before release.
-- Android application ID, versioning, signing configuration, keystore handling, and release build settings require a dedicated audit against the current Android files before release.
-- No physical-device acceptance evidence exists.
-- Requested capabilities (four AI levels, sound, statistics, save/resume, theme selection, language selection) remain incomplete per the Phase 07 audit.
-- The ThreeJS dependency publisher is marked unverified on pub.dev, as recorded in the Phase 03–04 implementation report.
+## Source-level findings
+1. Android namespace and application ID are both `com.example.ludo_game`. This is a placeholder identity and must be replaced with an approved permanent package ID before distribution. It was not guessed or changed during this audit.
+2. The release build type still uses `signingConfigs.debug`. A production keystore and protected signing configuration are required; do not commit keystore material or passwords.
+3. Target SDK is 34 while compile SDK is 35. The final target must be checked against the current Google Play/API-level policy at the time of the one authorized build/release; do not infer policy compliance from compilation.
+4. The manifest uses the generic label `ludo_game` and the platform default icon. The application label can safely be branded in source; a designed launcher icon/adaptive icon asset is still required.
+5. No build output, APK/AAB, signing verification, installation, or physical-device acceptance is evidenced by this audit.
+6. The ThreeJS package remains a third-party runtime dependency and its Android GPU/device behavior requires physical testing.
 
-## Stage result
-**NOT RELEASE READY.** Toolchain configuration is corrected in source, and validation CI is green, but compilation, signing, device acceptance, and product feature completeness are not proven. No build, signing, merge, or release was performed.
+## Stage 10 result
+**SOURCE AUDIT COMPLETED — NOT RELEASE READY.** The Gradle toolchain settings are present, but package identity, release signing, app icon, target-SDK policy confirmation, compilation, and device acceptance remain open. This audit did not consume the single authorized build.
