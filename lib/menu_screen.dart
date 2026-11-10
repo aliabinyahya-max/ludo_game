@@ -133,7 +133,7 @@ class _MenuScreenState extends State<MenuScreen> {
                         OutlinedButton.icon(
                           onPressed: _resumeGame,
                           icon: const Icon(Icons.play_circle_outline),
-                          label: const Text('استئناف آخر مباراة محفوظة'),
+                          label: Text(_text('استئناف آخر مباراة محفوظة', 'Resume saved match')),
                         ),
                       if (_history.isNotEmpty) _buildHistoryPanel(),
                       const SizedBox(height: 28),
@@ -144,7 +144,7 @@ class _MenuScreenState extends State<MenuScreen> {
                       const SizedBox(height: 14),
                       DropdownButtonFormField<AIDifficulty>(
                         initialValue: _aiDifficulty,
-                        decoration: const InputDecoration(
+                        decoration: InputDecoration(
                           labelText: _text('مستوى ذكاء الكمبيوتر', 'Computer difficulty'),
                           border: OutlineInputBorder(),
                         ),
