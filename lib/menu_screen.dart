@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'app_theme.dart';
 import 'game_screen.dart';
 import 'ludo_logic.dart';
+import 'local_game_store.dart';
 import 'ludo_data.dart';
 
 class MenuScreen extends StatefulWidget {
@@ -18,7 +19,29 @@ class _MenuScreenState extends State<MenuScreen> {
   // null = empty seat, false = human, true = computer.
   AIDifficulty _aiDifficulty = AIDifficulty.medium;
   bool _soundEnabled = true;
+  Map<String, dynamic>? _savedMatch;
+  List<Map<String, dynamic>> _history = [];
+  final LocalGameStore _store = LocalGameStore();
 
+  @override
+  void initState() {
+    super.initState();
+    _loadLocalData();
+  }
+
+  Future<void> _loadLocalData() async {
+    final values = await Future.wait([
+      _store.loadMatch(),
+      _store.loadHistory(),
+      _store.soundEnabled(),
+    ]);
+    if (!mounted) return;
+    setState(() {
+      _savedMatch = values[0] as Map<String, dynamic>?;
+      _history = values[1] as List<Map<String, dynamic>>;
+      _soundEnabled = values[2] as bool;
+    });
+  }
   final Map<PlayerColor, bool?> seatState = {
     PlayerColor.red: false,
     PlayerColor.green: true,
@@ -84,6 +107,14 @@ class _MenuScreenState extends State<MenuScreen> {
                       _buildBrandHeader(),
                       const SizedBox(height: 28),
                       _buildHeroPanel(),
+                      const SizedBox(height: 14),
+                      if (_savedMatch != null)
+                        OutlinedButton.icon(
+                          onPressed: _resumeGame,
+                          icon: const Icon(Icons.play_circle_outline),
+                          label: const Text('استئناف آخر مباراة محفوظة'),
+                        ),
+                      if (_history.isNotEmpty) _buildHistoryPanel(),
                       const SizedBox(height: 28),
                       _buildSectionHeader(
                         title: 'تجهيز المباراة',
@@ -113,8 +144,10 @@ class _MenuScreenState extends State<MenuScreen> {
                         title: const Text('المؤثرات الصوتية'),
                         subtitle: const Text('أصوات النرد والحركة والتنبيهات'),
                         value: _soundEnabled,
-                        onChanged: (value) =>
-                            setState(() => _soundEnabled = value),
+                        onChanged: (value) {
+                          setState(() => _soundEnabled = value);
+                          _store.setSoundEnabled(value);
+                        },
                       ),
                       const SizedBox(height: 14),
                       ...PlayerColor.values.map(_buildSeatCard),
@@ -362,6 +395,52 @@ class _MenuScreenState extends State<MenuScreen> {
             style: const TextStyle(color: LudoTheme.gold, fontSize: 16, fontWeight: FontWeight.w800),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildHistoryPanel() {
+    final wins = _history.length;
+    return Card(
+      child: ExpansionTile(
+        leading: const Icon(Icons.query_stats_rounded),
+        title: Text('سجل المباريات والإحصائيات ($wins)'),
+        children: _history.take(5).map((match) {
+          final winner = match['winner']?.toString() ?? '—';
+          final completed = match['completedAt']?.toString() ?? '';
+          final captures = match['captures']?.toString() ?? '0';
+          return ListTile(
+            dense: true,
+            title: Text('الفائز: $winner'),
+            subtitle: Text('عمليات الأكل: $captures • $completed'),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  void _resumeGame() {
+    final saved = _savedMatch;
+    if (saved == null) return;
+    final savedPlayers = saved['players'];
+    if (savedPlayers is! List) return;
+    final seats = <PlayerColor, bool>{};
+    for (final entry in savedPlayers) {
+      final data = Map<String, dynamic>.from(entry as Map);
+      final color = PlayerColor.values.firstWhere(
+        (value) => value.name == data['color'],
+      );
+      seats[color] = data['isAI'] == true;
+    }
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => GameScreen(
+          seats: seats,
+          use3DBoard: widget.use3DBoard,
+          aiDifficulty: _aiDifficulty,
+          soundEnabled: _soundEnabled,
+          resumeData: saved,
+        ),
       ),
     );
   }
