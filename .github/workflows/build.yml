@@ -96,18 +96,3 @@ jobs:
 
       - name: Run automated tests
         run: flutter test
-
-      # The newly authorized single build runs only for the direct push to this branch.
-      # Pull-request validation and workflow_dispatch never execute a build.
-      - name: Build one debug APK (single authorized attempt)
-        if: github.event_name == 'push' && github.ref == 'refs/heads/feat/3d-board-animations-phase-03-04-20261110'
-        run: flutter build apk --debug
-
-      - name: Upload debug APK
-        if: success() && github.event_name == 'push' && github.ref == 'refs/heads/feat/3d-board-animations-phase-03-04-20261110'
-        uses: actions/upload-artifact@v4
-        with:
-          name: ludo-debug-apk
-          path: build/app/outputs/flutter-apk/app-debug.apk
-          if-no-files-found: error
-          retention-days: 7
