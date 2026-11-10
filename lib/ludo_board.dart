@@ -43,6 +43,7 @@ class LudoBoard extends StatelessWidget {
                 width: cell * 0.80,
                 height: cell * 0.80,
                 child: GestureDetector(
+                  key: ValueKey('token-${p.color.name}-${t.id}'),
                   onTap: isHighlighted ? () => onTokenTap(t) : null,
                   child: _TokenDot(
                     color: p.color.color,
