@@ -14,6 +14,8 @@ class LudoBoard3D extends StatefulWidget {
   final List<LudoToken> highlightedTokens;
   final void Function(LudoToken) onTokenTap;
   final bool rolling;
+  final VoidCallback? onReady;
+  final void Function(Object error, StackTrace stackTrace)? onError;
 
   const LudoBoard3D({
     super.key,
@@ -21,6 +23,8 @@ class LudoBoard3D extends StatefulWidget {
     required this.highlightedTokens,
     required this.onTokenTap,
     this.rolling = false,
+    this.onReady,
+    this.onError,
   });
 
   @override
@@ -48,13 +52,16 @@ class _LudoBoard3DState extends State<LudoBoard3D> {
     super.initState();
     threeJs = three.ThreeJS(
       onSetupComplete: () {
-        if (mounted) setState(() => _ready = true);
+        if (!mounted) return;
+        setState(() => _ready = true);
+        widget.onReady?.call();
       },
       setup: _setupScene,
     );
   }
 
   Future<void> _setupScene() async {
+    try {
     final scene = three.Scene();
     threeJs.scene = scene;
 
@@ -154,6 +161,10 @@ class _LudoBoard3DState extends State<LudoBoard3D> {
         }
       }
     });
+    } catch (error, stackTrace) {
+      widget.onError?.call(error, stackTrace);
+      rethrow;
+    }
   }
 
   void _addBox(
@@ -305,6 +316,17 @@ class _LudoBoard3DState extends State<LudoBoard3D> {
     super.dispose();
   }
 
+  Widget _buildThreeView() {
+    try {
+      return threeJs.build();
+    } catch (error, stackTrace) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) widget.onError?.call(error, stackTrace);
+      });
+      return const SizedBox.expand();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return AspectRatio(
@@ -317,7 +339,7 @@ class _LudoBoard3DState extends State<LudoBoard3D> {
             child: Stack(
               fit: StackFit.expand,
               children: [
-                IgnorePointer(child: threeJs.build()),
+                IgnorePointer(child: _buildThreeView()),
                 if (!_ready)
                   const ColoredBox(
                     color: Color(0xFF10251D),
