@@ -30,7 +30,7 @@ class MenuScreen extends StatefulWidget {
 class _MenuScreenState extends State<MenuScreen> {
   // null = empty seat, false = human, true = computer.
   AIDifficulty _aiDifficulty = AIDifficulty.medium;
-  String _text(String ar, String en) => ludoText(context, ar, en);
+  String _text(String ar, String en) => widget.languageCode == 'en' ? en : ar;
 
   String _colorLabel(PlayerColor color) {
     switch (color) {
@@ -461,6 +461,7 @@ class _MenuScreenState extends State<MenuScreen> {
           use3DBoard: widget.use3DBoard,
           aiDifficulty: _aiDifficulty,
           soundEnabled: _soundEnabled,
+          languageCode: widget.languageCode,
           resumeData: saved,
         ),
       ),
@@ -479,6 +480,7 @@ class _MenuScreenState extends State<MenuScreen> {
           use3DBoard: widget.use3DBoard,
           aiDifficulty: _aiDifficulty,
           soundEnabled: _soundEnabled,
+          languageCode: widget.languageCode,
         ),
       ),
     ).then((_) => _loadLocalData());
