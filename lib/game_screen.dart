@@ -1,17 +1,36 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'ludo_data.dart';
 import 'ludo_models.dart';
 import 'ludo_logic.dart';
 import 'ludo_board.dart';
+import 'ludo_board_3d.dart';
+import 'local_game_store.dart';
 
 class GameScreen extends StatefulWidget {
   /// Map of color -> isAI. Colors not present are not in the game.
   final Map<PlayerColor, bool> seats;
 
   final int Function()? diceRoller;
+  final bool use3DBoard;
+  final AIDifficulty aiDifficulty;
+  final bool soundEnabled;
+  final Map<String, dynamic>? resumeData;
+  final String languageCode;
+  final Duration boardInitializationTimeout;
 
-  const GameScreen({super.key, required this.seats, this.diceRoller});
+  const GameScreen({
+    super.key,
+    required this.seats,
+    this.diceRoller,
+    this.use3DBoard = true,
+    this.aiDifficulty = AIDifficulty.medium,
+    this.soundEnabled = true,
+    this.resumeData,
+    this.languageCode = 'ar',
+    this.boardInitializationTimeout = const Duration(seconds: 8),
+  });
 
   @override
   State<GameScreen> createState() => _GameScreenState();
@@ -28,20 +47,119 @@ class _GameScreenState extends State<GameScreen> {
   bool turnTransitioning = false;
   bool gameOver = false;
   String message = '';
+  final LocalGameStore _store = LocalGameStore();
+  int captureCount = 0;
+  late DateTime _startedAt;
+  late bool _use3DBoard;
+  Timer? _boardInitializationTimer;
 
   @override
   void initState() {
     super.initState();
-    players = widget.seats.entries
-        .map((e) => LudoPlayer(color: e.key, isAI: e.value))
-        .toList()
-      ..sort((a, b) => a.color.index.compareTo(b.color.index));
+    _startedAt = DateTime.now();
+    _use3DBoard = widget.use3DBoard;
+    if (_use3DBoard) {
+      _boardInitializationTimer = Timer(widget.boardInitializationTimeout, () {
+        if (!mounted || !_use3DBoard) return;
+        setState(() {
+          _use3DBoard = false;
+          message = _text(
+            'تعذر تشغيل اللوحة ثلاثية الأبعاد؛ تم التبديل إلى اللوحة البديلة.',
+            'The 3D board could not start; switched to the fallback board.',
+          );
+        });
+      });
+    }
+    final savedPlayers = widget.resumeData?['players'];
+    if (savedPlayers is List) {
+      players = savedPlayers.map((entry) {
+        final data = Map<String, dynamic>.from(entry as Map);
+        final color = PlayerColor.values.firstWhere(
+          (value) => value.name == data['color'],
+        );
+        final player = LudoPlayer(
+          color: color,
+          isAI: data['isAI'] == true,
+        );
+        final steps = data['steps'] as List;
+        for (var i = 0; i < player.tokens.length && i < steps.length; i++) {
+          player.tokens[i].step = (steps[i] as num).toInt();
+        }
+        return player;
+      }).toList();
+    } else {
+      players = widget.seats.entries
+          .map((e) => LudoPlayer(color: e.key, isAI: e.value))
+          .toList()
+        ..sort((a, b) => a.color.index.compareTo(b.color.index));
+    }
     engine = LudoEngine(players);
-    message = 'دور ${players[currentPlayerIndex].color.label}: ارمِ النرد';
+    final saved = widget.resumeData;
+    if (saved != null) {
+      currentPlayerIndex =
+          ((saved['currentPlayerIndex'] as num?)?.toInt() ?? 0)
+              .clamp(0, players.length - 1)
+              .toInt();
+      turnTracker.consecutiveSixes =
+          (saved['consecutiveSixes'] as num?)?.toInt() ?? 0;
+      lastDice = (saved['lastDice'] as num?)?.toInt();
+      captureCount = (saved['captureCount'] as num?)?.toInt() ?? 0;
+      gameOver = saved['gameOver'] == true;
+      final started = saved['startedAt'];
+      if (started is String) {
+        _startedAt = DateTime.tryParse(started) ?? _startedAt;
+      }
+      if (lastDice != null) {
+        movable = engine.movableTokens(currentPlayer, lastDice!);
+      }
+    }
+    message = _text('دور ${_colorLabel(players[currentPlayerIndex].color)}: ارمِ النرد', '${_colorLabel(players[currentPlayerIndex].color)} turn: roll the dice');
     _maybeTriggerAI();
   }
 
   LudoPlayer get currentPlayer => players[currentPlayerIndex];
+
+  void _on3DBoardReady() {
+    _boardInitializationTimer?.cancel();
+    _boardInitializationTimer = null;
+  }
+
+  void _on3DBoardError(Object error, StackTrace stackTrace) {
+    _boardInitializationTimer?.cancel();
+    _boardInitializationTimer = null;
+    if (!mounted || !_use3DBoard) return;
+    setState(() {
+      _use3DBoard = false;
+      message = _text(
+        'تعذر تشغيل اللوحة ثلاثية الأبعاد؛ تم التبديل إلى اللوحة البديلة.',
+        'The 3D board failed; switched to the fallback board.',
+      );
+    });
+  }
+
+  @override
+  void dispose() {
+    _boardInitializationTimer?.cancel();
+    super.dispose();
+  }
+
+  String _text(String ar, String en) => widget.languageCode == 'en' ? en : ar;
+
+  String _colorLabel(PlayerColor color) {
+    switch (color) {
+      case PlayerColor.red: return _text('أحمر', 'Red');
+      case PlayerColor.green: return _text('أخضر', 'Green');
+      case PlayerColor.yellow: return _text('أصفر', 'Yellow');
+      case PlayerColor.blue: return _text('أزرق', 'Blue');
+    }
+  }
+
+  void _playSound({bool alert = false}) {
+    if (!widget.soundEnabled) return;
+    unawaited(SystemSound.play(
+      alert ? SystemSoundType.alert : SystemSoundType.click,
+    ));
+  }
 
   void _nextTurn({bool extraTurn = false}) {
     setState(() {
@@ -53,8 +171,9 @@ class _GameScreenState extends State<GameScreen> {
         currentPlayerIndex = (currentPlayerIndex + 1) % players.length;
         turnTracker.reset();
       }
-      message = 'دور ${currentPlayer.color.label}: ارمِ النرد';
+      message = _text('دور ${_colorLabel(currentPlayer.color)}: ارمِ النرد', '${_colorLabel(currentPlayer.color)} turn: roll the dice');
     });
+    unawaited(_persistMatch());
     _maybeTriggerAI();
   }
 
@@ -63,13 +182,63 @@ class _GameScreenState extends State<GameScreen> {
     if (currentPlayer.isAI) {
       Future.delayed(const Duration(milliseconds: 600), () {
         if (!mounted || gameOver) return;
-        _roll();
+        if (lastDice != null && movable.isNotEmpty) {
+          _performMove(
+            engine.chooseAIMove(
+              currentPlayer,
+              lastDice!,
+              difficulty: widget.aiDifficulty,
+            ),
+            lastDice!,
+          );
+        } else {
+          _roll();
+        }
       });
     }
   }
 
+  Future<void> _persistMatch() async {
+    if (gameOver) return;
+    await _store.saveMatch({
+      'version': 1,
+      'players': players.map((player) => {
+        'color': player.color.name,
+        'isAI': player.isAI,
+        'steps': player.tokens.map((token) => token.step).toList(),
+      }).toList(),
+      'currentPlayerIndex': currentPlayerIndex,
+      'consecutiveSixes': turnTracker.consecutiveSixes,
+      'lastDice': lastDice,
+      'captureCount': captureCount,
+      'gameOver': gameOver,
+      'startedAt': _startedAt.toIso8601String(),
+    });
+  }
+
+  Future<void> _persistPendingTurn({required bool extraTurn}) async {
+    await _store.saveMatch({
+      'version': 1,
+      'players': players.map((player) => {
+        'color': player.color.name,
+        'isAI': player.isAI,
+        'steps': player.tokens.map((token) => token.step).toList(),
+      }).toList(),
+      'currentPlayerIndex': extraTurn
+          ? currentPlayerIndex
+          : (currentPlayerIndex + 1) % players.length,
+      'consecutiveSixes':
+          extraTurn ? turnTracker.consecutiveSixes : 0,
+      'lastDice': null,
+      'captureCount': captureCount,
+      'gameOver': false,
+      'startedAt': _startedAt.toIso8601String(),
+    });
+  }
+
   void _roll() {
     if (rolling || turnTransitioning || gameOver) return;
+    _playSound();
     setState(() => rolling = true);
     Future.delayed(const Duration(milliseconds: 350), () {
       if (!mounted) return;
@@ -81,7 +250,7 @@ class _GameScreenState extends State<GameScreen> {
           turnTransitioning = true;
           lastDice = null;
           movable = [];
-          message = '${currentPlayer.color.label} رمى 6 للمرة الثالثة — تم إلغاء الدور';
+          message = _text('${_colorLabel(currentPlayer.color)} رمى 6 للمرة الثالثة — تم إلغاء الدور', '${_colorLabel(currentPlayer.color)} rolled three sixes — turn cancelled');
         });
         Future.delayed(const Duration(milliseconds: 700), () {
           if (!mounted) return;
@@ -97,8 +266,10 @@ class _GameScreenState extends State<GameScreen> {
         movable = opts;
       });
       if (opts.isEmpty) {
-        setState(() => message =
-            '${currentPlayer.color.label} رمى $dice — لا توجد نقلة ممكنة');
+        setState(() => message = _text(
+          '${_colorLabel(currentPlayer.color)} رمى $dice — لا توجد نقلة ممكنة',
+          '${_colorLabel(currentPlayer.color)} rolled $dice — no legal move',
+        ));
         Future.delayed(const Duration(milliseconds: 700), () {
           if (!mounted) return;
           // A six grants another roll even when no legal move exists.
@@ -106,10 +277,11 @@ class _GameScreenState extends State<GameScreen> {
         });
         return;
       }
+      unawaited(_persistMatch());
       if (currentPlayer.isAI) {
         Future.delayed(const Duration(milliseconds: 500), () {
           if (!mounted) return;
-          final choice = engine.chooseAIMove(currentPlayer, dice);
+          final choice = engine.chooseAIMove(currentPlayer, dice, difficulty: widget.aiDifficulty);
           _performMove(choice, dice);
         });
       } else if (opts.length == 1) {
@@ -119,8 +291,10 @@ class _GameScreenState extends State<GameScreen> {
           _performMove(opts.first, dice);
         });
       } else {
-        setState(() => message =
-            '${currentPlayer.color.label} رمى $dice — اختر مهرة للتحريك');
+        setState(() => message = _text(
+          '${_colorLabel(currentPlayer.color)} رمى $dice — اختر مهرة للتحريك',
+          '${_colorLabel(currentPlayer.color)} rolled $dice — choose a token',
+        ));
       }
     });
   }
@@ -150,21 +324,30 @@ class _GameScreenState extends State<GameScreen> {
     // through the rules engine exactly once.
     token.step = startStep;
     final result = engine.applyMove(token, dice);
+    captureCount += result.captured.length;
+    _playSound(alert: result.captured.isNotEmpty);
 
     setState(() {
       if (result.captured.isNotEmpty) {
-        message = '${currentPlayer.color.label} أكل مهرة! 🎉';
+        message = _text('${_colorLabel(currentPlayer.color)} أكل مهرة! 🎉', '${_colorLabel(currentPlayer.color)} captured a token! 🎉');
       } else if (token.finished) {
-        message = '${currentPlayer.color.label} أوصل مهرة للبيت 🏠';
+        message = _text('${_colorLabel(currentPlayer.color)} أوصل مهرة للبيت 🏠', '${_colorLabel(currentPlayer.color)} brought a token home 🏠');
       } else {
-        message = '${currentPlayer.color.label} حرّك مهرة';
+        message = _text('${_colorLabel(currentPlayer.color)} حرّك مهرة', '${_colorLabel(currentPlayer.color)} moved a token');
       }
     });
 
     if (currentPlayer.hasWon) {
       setState(() {
         gameOver = true;
-        message = '🏆 ${currentPlayer.color.label} فاز باللعبة!';
+        message = _text('🏆 ${_colorLabel(currentPlayer.color)} فاز باللعبة!', '🏆 ${_colorLabel(currentPlayer.color)} won the game!');
+      });
+      _playSound(alert: true);
+      await _store.recordCompletedMatch({
+        'winner': currentPlayer.color.name,
+        'playerCount': players.length,
+        'captures': captureCount,
+        'durationSeconds': DateTime.now().difference(_startedAt).inSeconds,
       });
       return;
     }
@@ -173,6 +356,7 @@ class _GameScreenState extends State<GameScreen> {
       dice: dice,
       captured: result.captured.isNotEmpty,
     );
+    await _persistPendingTurn(extraTurn: extra);
     await Future.delayed(const Duration(milliseconds: 500));
 
     if (!mounted) return;
@@ -188,7 +372,7 @@ class _GameScreenState extends State<GameScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('لودو')),
+      appBar: AppBar(title: Text(_text('لودو', 'Ludo'))),
       body: SafeArea(
         child: Column(
           children: [
@@ -210,12 +394,12 @@ class _GameScreenState extends State<GameScreen> {
                       ),
                       child: Column(
                         children: [
-                          Text(p.color.label,
+                          Text(_colorLabel(p.color),
                               style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   color:
                                       isTurn ? Colors.white : Colors.black87)),
-                          Text(p.isAI ? 'كمبيوتر' : 'لاعب',
+                          Text(p.isAI ? _text('كمبيوتر', 'Computer') : _text('لاعب', 'Player'),
                               style: TextStyle(
                                   fontSize: 11,
                                   color: isTurn
@@ -230,21 +414,48 @@ class _GameScreenState extends State<GameScreen> {
             ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Text(message,
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 240),
+                transitionBuilder: (child, animation) => FadeTransition(
+                  opacity: animation,
+                  child: SlideTransition(
+                    position: Tween<Offset>(
+                      begin: const Offset(0, 0.18),
+                      end: Offset.zero,
+                    ).animate(animation),
+                    child: child,
+                  ),
+                ),
+                child: Text(
+                  message,
+                  key: ValueKey(message),
                   textAlign: TextAlign.center,
                   style: const TextStyle(
-                      fontSize: 15, fontWeight: FontWeight.w600)),
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
             ),
             const SizedBox(height: 8),
             Expanded(
               child: Center(
                 child: Padding(
                   padding: const EdgeInsets.all(12),
-                  child: LudoBoard(
-                    players: players,
-                    highlightedTokens: movable,
-                    onTokenTap: _onTokenTap,
-                  ),
+                  child: _use3DBoard
+                      ? LudoBoard3D(
+                          onReady: _on3DBoardReady,
+                          onError: _on3DBoardError,
+                          players: players,
+                          highlightedTokens: movable,
+                          onTokenTap: _onTokenTap,
+                          rolling: rolling,
+                        )
+                      : LudoBoard(
+                          players: players,
+                          highlightedTokens: movable,
+                          onTokenTap: _onTokenTap,
+                        ),
                 ),
               ),
             ),
@@ -261,10 +472,15 @@ class _GameScreenState extends State<GameScreen> {
                             !turnTransitioning)
                         ? _roll
                         : null,
-                    icon: const Icon(Icons.casino),
+                    icon: AnimatedRotation(
+                      turns: rolling ? 0.5 : 0,
+                      duration: const Duration(milliseconds: 320),
+                      curve: Curves.easeInOut,
+                      child: const Icon(Icons.casino),
+                    ),
                     label: Text(rolling
                         ? '...'
-                        : (lastDice?.toString() ?? 'ارمِ النرد')),
+                        : (lastDice?.toString() ?? _text('ارمِ النرد', 'Roll dice'))),
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 28, vertical: 14),
@@ -275,7 +491,7 @@ class _GameScreenState extends State<GameScreen> {
                     const SizedBox(width: 12),
                     OutlinedButton(
                       onPressed: () => Navigator.of(context).pop(),
-                      child: const Text('رجوع للقائمة'),
+                      child: Text(_text('رجوع للقائمة', 'Back to menu')),
                     ),
                   ],
                 ],

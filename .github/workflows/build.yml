@@ -1,15 +1,20 @@
-name: Validate Flutter
+name: Validate Flutter and Android Toolchain
 
 on:
   push:
-    branches: [main, master]
+    branches: [main, master, feat/3d-board-animations-phase-03-04-20261110]
   pull_request:
-    branches: [main, master, fix/ludo-rules-tests-20261110]
+    branches: [main, master, fix/ludo-rules-tests-20261110, feat/premium-menu-phase-01-02-20261110]
   workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   validate:
     runs-on: ubuntu-latest
+    timeout-minutes: 45
 
     steps:
       - name: Checkout
@@ -29,6 +34,60 @@ jobs:
           channel: stable
           cache: true
 
+      # GitHub-hosted Ubuntu runners already include Android command-line tools.
+      # Avoid android-actions/setup-android@v3 because its legacy "tools" package is unavailable.
+      - name: Locate preinstalled Android SDK manager
+        id: android_sdk
+        shell: bash
+        run: |
+          set -euo pipefail
+          if command -v sdkmanager >/dev/null 2>&1; then
+            SDKMANAGER="$(command -v sdkmanager)"
+          elif [ -n "${ANDROID_HOME:-}" ] && [ -x "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" ]; then
+            SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          elif [ -n "${ANDROID_SDK_ROOT:-}" ] && [ -x "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" ]; then
+            SDKMANAGER="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
+          else
+            echo "::error::Android sdkmanager is not available on this runner"
+            exit 1
+          fi
+          echo "sdkmanager=$SDKMANAGER" >> "$GITHUB_OUTPUT"
+          "$SDKMANAGER" --version
+
+      - name: Install and verify Android SDK components
+        shell: bash
+        env:
+          SDKMANAGER: ${{ steps.android_sdk.outputs.sdkmanager }}
+        run: |
+          set -euo pipefail
+          set +o pipefail
+          yes | "$SDKMANAGER" --licenses
+          sdkmanager_status="${PIPESTATUS[1]}"
+          set -o pipefail
+          if [ "$sdkmanager_status" -ne 0 ]; then
+            echo "::error::sdkmanager --licenses failed with exit code $sdkmanager_status"
+            exit "$sdkmanager_status"
+          fi
+          "$SDKMANAGER" --install \
+            "platform-tools" \
+            "platforms;android-36" \
+            "build-tools;35.0.0" \
+            "ndk;28.2.13676358" \
+            "cmake;3.31.4"
+
+          installed="$("$SDKMANAGER" --list_installed)"
+          for package in \
+            "platform-tools" \
+            "platforms;android-36" \
+            "build-tools;35.0.0" \
+            "ndk;28.2.13676358" \
+            "cmake;3.31.4"; do
+            if ! grep -Fq "$package" <<< "$installed"; then
+              echo "::error::Required Android SDK package is missing: $package"
+              exit 1
+            fi
+          done
+
       - name: Get Dependencies
         run: flutter pub get
 
@@ -37,3 +96,18 @@ jobs:
 
       - name: Run automated tests
         run: flutter test
+
+      # One explicitly authorized debug APK build for the current device-fallback fix.
+      # Never build on pull_request or workflow_dispatch.
+      - name: Build one debug APK (newly authorized single attempt)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/feat/3d-board-animations-phase-03-04-20261110'
+        run: flutter build apk --debug
+
+      - name: Upload debug APK
+        if: github.event_name == 'push' && github.ref == 'refs/heads/feat/3d-board-animations-phase-03-04-20261110'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ludo-debug-apk-device-fallback
+          path: build/app/outputs/flutter-apk/app-debug.apk
+          if-no-files-found: error
+          retention-days: 7

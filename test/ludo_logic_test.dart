@@ -369,4 +369,111 @@ void main() {
     });
   });
 
+
+  group('LudoEngine roster invariants', () {
+    test('rejects fewer than two players', () {
+      final red = LudoPlayer(color: PlayerColor.red, isAI: false);
+      expect(() => LudoEngine([red]), throwsArgumentError);
+    });
+
+    test('rejects more than four players', () {
+      final players = PlayerColor.values
+          .map((color) => LudoPlayer(color: color, isAI: false))
+          .toList()
+        ..add(LudoPlayer(color: PlayerColor.red, isAI: true));
+      expect(() => LudoEngine(players), throwsArgumentError);
+    });
+
+    test('rejects duplicate player colors', () {
+      final redOne = LudoPlayer(color: PlayerColor.red, isAI: false);
+      final redTwo = LudoPlayer(color: PlayerColor.red, isAI: true);
+      expect(() => LudoEngine([redOne, redTwo]), throwsArgumentError);
+    });
+
+    test('rejects a token that does not belong to this match', () {
+      final red = LudoPlayer(color: PlayerColor.red, isAI: false);
+      final green = LudoPlayer(color: PlayerColor.green, isAI: false);
+      final engine = LudoEngine([red, green]);
+      final externalRedToken = LudoToken(color: PlayerColor.red, id: 0);
+
+      expect(engine.canMoveToken(externalRedToken, 6), isFalse);
+      expect(
+        () => engine.applyMove(externalRedToken, 6),
+        throwsStateError,
+      );
+    });
+  });
+
+  group('AI difficulty profiles', () {
+    test('all four difficulty profiles return a legal move', () {
+      final red = LudoPlayer(color: PlayerColor.red, isAI: true);
+      final green = LudoPlayer(color: PlayerColor.green, isAI: false);
+      final engine = LudoEngine([red, green]);
+
+      for (final level in AIDifficulty.values) {
+        final selected = engine.chooseAIMove(
+          red,
+          6,
+          difficulty: level,
+        );
+        expect(red.tokens, contains(selected), reason: 'Invalid move at $level');
+        expect(engine.canMoveToken(selected, 6), isTrue);
+      }
+    });
+
+    test('four distinct difficulty levels are exposed', () {
+      expect(AIDifficulty.values, hasLength(4));
+      expect(AIDifficulty.values, containsAll([
+        AIDifficulty.easy,
+        AIDifficulty.medium,
+        AIDifficulty.hard,
+        AIDifficulty.expert,
+      ]));
+    });
+
+    test('hard AI avoids an exposed advance that medium prefers', () {
+      final red = LudoPlayer(color: PlayerColor.red, isAI: true);
+      final green = LudoPlayer(color: PlayerColor.green, isAI: false);
+      final engine = LudoEngine([red, green]);
+
+      // Red token 0 is further advanced but would land on a cell
+      // reachable by green next turn. Red token 1 lands on safe cell 8.
+      red.tokens[0].step = 9;
+      red.tokens[1].step = 7;
+      green.tokens[0].step = 48; // Green global cell 9; one roll reaches 10.
+
+      final medium = engine.chooseAIMove(
+        red, 1, difficulty: AIDifficulty.medium,
+      );
+      final hard = engine.chooseAIMove(
+        red, 1, difficulty: AIDifficulty.hard,
+      );
+
+      expect(medium, same(red.tokens[0]));
+      expect(hard, same(red.tokens[1]));
+    });
+
+    test('expert AI is more conservative than hard near an opponent threat', () {
+      final red = LudoPlayer(color: PlayerColor.red, isAI: true);
+      final green = LudoPlayer(color: PlayerColor.green, isAI: false);
+      final engine = LudoEngine([red, green]);
+
+      // Hard prefers the far-advanced token despite exposure; expert's
+      // stronger threat penalty selects the less advanced alternative.
+      red.tokens[0].step = 50;
+      red.tokens[1].step = 9;
+      green.tokens[0].step = 37; // Global cell 50; can reach 51 next turn.
+
+      final hard = engine.chooseAIMove(
+        red, 1, difficulty: AIDifficulty.hard,
+      );
+      final expert = engine.chooseAIMove(
+        red, 1, difficulty: AIDifficulty.expert,
+      );
+
+      expect(hard, same(red.tokens[0]));
+      expect(expert, same(red.tokens[1]));
+    });
+  });
+
 }

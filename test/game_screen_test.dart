@@ -1,12 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ludo_game/game_screen.dart';
 import 'package:ludo_game/ludo_data.dart';
+import 'package:ludo_game/ludo_board.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('GameScreen turn flow', () {
+    setUp(() {
+      SharedPreferences.setMockInitialValues({});
+    });
     testWidgets('locks dice input until the third-six turn transition completes',
         (tester) async {
       tester.view.physicalSize = const Size(1080, 1920);
@@ -28,6 +33,7 @@ void main() {
               PlayerColor.green: false,
             },
             diceRoller: deterministicSix,
+            use3DBoard: false,
           ),
         ),
       );
@@ -86,6 +92,7 @@ void main() {
               PlayerColor.green: false,
             },
             diceRoller: () => 5,
+            use3DBoard: false,
           ),
         ),
       );
@@ -122,7 +129,7 @@ void main() {
 
         await tester.pumpWidget(
           MaterialApp(
-            home: GameScreen(seats: seats, diceRoller: deterministicOne),
+            home: GameScreen(seats: seats, diceRoller: deterministicOne, use3DBoard: false),
           ),
         );
 
@@ -144,6 +151,35 @@ void main() {
         expect(find.textContaining('دور أحمر'), findsOneWidget);
         await tester.pumpWidget(const SizedBox.shrink());
       }
+    });
+
+    testWidgets('falls back to the 2D board when 3D initialization times out',
+        (tester) async {
+      tester.view.physicalSize = const Size(1080, 1920);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      SharedPreferences.setMockInitialValues({});
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: GameScreen(
+            seats: const {
+              PlayerColor.red: false,
+              PlayerColor.green: false,
+            },
+            use3DBoard: true,
+            boardInitializationTimeout: const Duration(milliseconds: 100),
+          ),
+        ),
+      );
+
+      await tester.pump(const Duration(milliseconds: 101));
+      await tester.pump();
+
+      expect(find.textContaining('تم التبديل إلى اللوحة البديلة'), findsOneWidget);
+      expect(find.byType(LudoBoard), findsOneWidget);
+      expect(tester.takeException(), isNull);
     });
   });
 }

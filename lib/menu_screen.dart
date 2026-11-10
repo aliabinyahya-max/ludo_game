@@ -2,10 +2,25 @@ import 'package:flutter/material.dart';
 
 import 'app_theme.dart';
 import 'game_screen.dart';
+import 'ludo_logic.dart';
+import 'local_game_store.dart';
 import 'ludo_data.dart';
 
 class MenuScreen extends StatefulWidget {
-  const MenuScreen({super.key});
+  final bool use3DBoard;
+  final String themeName;
+  final String languageCode;
+  final ValueChanged<String>? onThemeChanged;
+  final ValueChanged<String>? onLanguageChanged;
+
+  const MenuScreen({
+    super.key,
+    this.use3DBoard = true,
+    this.themeName = 'emerald',
+    this.languageCode = 'ar',
+    this.onThemeChanged,
+    this.onLanguageChanged,
+  });
 
   @override
   State<MenuScreen> createState() => _MenuScreenState();
@@ -13,6 +28,41 @@ class MenuScreen extends StatefulWidget {
 
 class _MenuScreenState extends State<MenuScreen> {
   // null = empty seat, false = human, true = computer.
+  AIDifficulty _aiDifficulty = AIDifficulty.medium;
+  String _text(String ar, String en) => widget.languageCode == 'en' ? en : ar;
+
+  String _colorLabel(PlayerColor color) {
+    switch (color) {
+      case PlayerColor.red: return _text('أحمر', 'Red');
+      case PlayerColor.green: return _text('أخضر', 'Green');
+      case PlayerColor.yellow: return _text('أصفر', 'Yellow');
+      case PlayerColor.blue: return _text('أزرق', 'Blue');
+    }
+  }
+  bool _soundEnabled = true;
+  Map<String, dynamic>? _savedMatch;
+  List<Map<String, dynamic>> _history = [];
+  final LocalGameStore _store = LocalGameStore();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadLocalData();
+  }
+
+  Future<void> _loadLocalData() async {
+    final values = await Future.wait([
+      _store.loadMatch(),
+      _store.loadHistory(),
+      _store.soundEnabled(),
+    ]);
+    if (!mounted) return;
+    setState(() {
+      _savedMatch = values[0] as Map<String, dynamic>?;
+      _history = values[1] as List<Map<String, dynamic>>;
+      _soundEnabled = values[2] as bool;
+    });
+  }
   final Map<PlayerColor, bool?> seatState = {
     PlayerColor.red: false,
     PlayerColor.green: true,
@@ -33,9 +83,22 @@ class _MenuScreenState extends State<MenuScreen> {
     });
   }
 
+  String _difficultyLabel(AIDifficulty level) {
+    switch (level) {
+      case AIDifficulty.easy:
+        return _text('سهل', 'Easy');
+      case AIDifficulty.medium:
+        return _text('متوسط', 'Medium');
+      case AIDifficulty.hard:
+        return _text('صعب', 'Hard');
+      case AIDifficulty.expert:
+        return _text('خبير', 'Expert');
+    }
+  }
+
   String _seatLabel(bool? value) {
-    if (value == null) return 'مقعد فارغ';
-    return value ? 'الكمبيوتر' : 'لاعب بشري';
+    if (value == null) return _text('مقعد فارغ', 'Empty seat');
+    return value ? _text('الكمبيوتر', 'Computer') : _text('لاعب بشري', 'Human player');
   }
 
   IconData _seatIcon(bool? value) {
@@ -65,10 +128,47 @@ class _MenuScreenState extends State<MenuScreen> {
                       _buildBrandHeader(),
                       const SizedBox(height: 28),
                       _buildHeroPanel(),
+                      const SizedBox(height: 14),
+                      if (_savedMatch != null)
+                        OutlinedButton.icon(
+                          onPressed: _resumeGame,
+                          icon: const Icon(Icons.play_circle_outline),
+                          label: Text(_text('استئناف آخر مباراة محفوظة', 'Resume saved match')),
+                        ),
+                      if (_history.isNotEmpty) _buildHistoryPanel(),
                       const SizedBox(height: 28),
                       _buildSectionHeader(
-                        title: 'تجهيز المباراة',
-                        subtitle: 'اختر من سيشارك في اللعب',
+                        title: _text('تجهيز المباراة', 'Match setup'),
+                        subtitle: _text('اختر من سيشارك في اللعب', 'Choose who will play'),
+                      ),
+                      const SizedBox(height: 14),
+                      DropdownButtonFormField<AIDifficulty>(
+                        initialValue: _aiDifficulty,
+                        decoration: InputDecoration(
+                          labelText: _text('مستوى ذكاء الكمبيوتر', 'Computer difficulty'),
+                          border: OutlineInputBorder(),
+                        ),
+                        items: AIDifficulty.values
+                            .map((level) => DropdownMenuItem(
+                                  value: level,
+                                  child: Text(_difficultyLabel(level)),
+                                ))
+                            .toList(),
+                        onChanged: (level) {
+                          if (level != null) {
+                            setState(() => _aiDifficulty = level);
+                          }
+                        },
+                      ),
+                      SwitchListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: Text(_text('المؤثرات الصوتية', 'Sound effects')),
+                        subtitle: Text(_text('أصوات النرد والحركة والتنبيهات', 'Dice, movement and alert sounds')),
+                        value: _soundEnabled,
+                        onChanged: (value) {
+                          setState(() => _soundEnabled = value);
+                          _store.setSoundEnabled(value);
+                        },
                       ),
                       const SizedBox(height: 14),
                       ...PlayerColor.values.map(_buildSeatCard),
@@ -82,11 +182,11 @@ class _MenuScreenState extends State<MenuScreen> {
                       ElevatedButton.icon(
                         onPressed: canStart ? _startGame : null,
                         icon: const Icon(Icons.play_arrow_rounded, size: 26),
-                        label: const Text('ابدأ المباراة'),
+                        label: Text(_text('ابدأ المباراة', 'Start match')),
                       ),
                       const SizedBox(height: 12),
                       Text(
-                        'اللعب المحلي • من لاعبين إلى أربعة لاعبين',
+                        _text('اللعب المحلي • من لاعبين إلى أربعة لاعبين', 'Local play • 2 to 4 players'),
                         textAlign: TextAlign.center,
                         style: Theme.of(context).textTheme.bodyMedium,
                       ),
@@ -130,7 +230,7 @@ class _MenuScreenState extends State<MenuScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text('LUDO', style: Theme.of(context).textTheme.titleLarge),
-              Text('اللعب يجمعنا', style: Theme.of(context).textTheme.bodyMedium),
+              Text(_text('اللعب يجمعنا', 'Play brings us together'), style: Theme.of(context).textTheme.bodyMedium),
             ],
           ),
         ),
@@ -179,19 +279,19 @@ class _MenuScreenState extends State<MenuScreen> {
             child: const Icon(Icons.emoji_events_rounded, color: LudoTheme.gold, size: 25),
           ),
           const SizedBox(height: 17),
-          Text('مستعد للتحدي؟', style: Theme.of(context).textTheme.headlineMedium),
+          Text(_text('مستعد للتحدي؟', 'Ready for the challenge?'), style: Theme.of(context).textTheme.headlineMedium),
           const SizedBox(height: 7),
           Text(
-            'جهّز مقاعد اللاعبين وابدأ جولة لودو مع الأصدقاء أو الكمبيوتر.',
+            _text('جهّز مقاعد اللاعبين وابدأ جولة لودو مع الأصدقاء أو الكمبيوتر.', 'Set up the players and start a Ludo match with friends or the computer.'),
             style: Theme.of(context).textTheme.bodyMedium,
           ),
           const SizedBox(height: 18),
-          const Wrap(
+          Wrap(
             spacing: 8,
             runSpacing: 8,
             children: [
-              _FeaturePill(icon: Icons.groups_rounded, label: '2–4 لاعبين'),
-              _FeaturePill(icon: Icons.wifi_off_rounded, label: 'بدون إنترنت'),
+              _FeaturePill(icon: Icons.groups_rounded, label: _text('2–4 لاعبين', '2–4 players')),
+              _FeaturePill(icon: Icons.wifi_off_rounded, label: _text('بدون إنترنت', 'Offline')),
             ],
           ),
         ],
@@ -240,7 +340,7 @@ class _MenuScreenState extends State<MenuScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(color.label, style: Theme.of(context).textTheme.titleMedium),
+                    Text(_colorLabel(color), style: Theme.of(context).textTheme.titleMedium),
                     const SizedBox(height: 3),
                     Text(_seatLabel(value), style: Theme.of(context).textTheme.bodyMedium),
                   ],
@@ -263,7 +363,7 @@ class _MenuScreenState extends State<MenuScreen> {
                     ),
                     const SizedBox(width: 6),
                     Text(
-                      isEmpty ? 'إضافة' : (value ? 'كمبيوتر' : 'بشري'),
+                      isEmpty ? _text('إضافة', 'Add') : (value ? _text('كمبيوتر', 'Computer') : _text('بشري', 'Human')),
                       style: TextStyle(
                         color: isEmpty ? LudoTheme.textSecondary : LudoTheme.emeraldLight,
                         fontSize: 12,
@@ -301,10 +401,10 @@ class _MenuScreenState extends State<MenuScreen> {
           Expanded(
             child: Text(
               canStart
-                  ? '$activeCount مقاعد مشاركة • $humanCount لاعب بشري'
+                  ? _text('$activeCount مقاعد مشاركة • $humanCount لاعب بشري', '$activeCount active seats • $humanCount human players')
                   : humanCount == 0
-                      ? 'أضف لاعباً بشرياً واحداً على الأقل'
-                      : 'أضف مقعداً ثانياً لبدء المباراة',
+                      ? _text('أضف لاعباً بشرياً واحداً على الأقل', 'Add at least one human player')
+                      : _text('أضف مقعداً ثانياً لبدء المباراة', 'Add a second seat to start'),
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: canStart ? LudoTheme.emeraldLight : LudoTheme.textSecondary,
                     fontWeight: FontWeight.w600,
@@ -320,14 +420,69 @@ class _MenuScreenState extends State<MenuScreen> {
     );
   }
 
+  Widget _buildHistoryPanel() {
+    final wins = _history.length;
+    return Card(
+      child: ExpansionTile(
+        leading: const Icon(Icons.query_stats_rounded),
+        title: Text(_text('سجل المباريات والإحصائيات', 'Match history and statistics') + ' ($wins)'),
+        children: _history.take(5).map((match) {
+          final winner = match['winner']?.toString() ?? '—';
+          final completed = match['completedAt']?.toString() ?? '';
+          final captures = match['captures']?.toString() ?? '0';
+          return ListTile(
+            dense: true,
+            title: Text(_text('الفائز: ', 'Winner: ') + winner),
+            subtitle: Text(_text('عمليات الأكل: ', 'Captures: ') + '$captures • $completed'),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  void _resumeGame() {
+    final saved = _savedMatch;
+    if (saved == null) return;
+    final savedPlayers = saved['players'];
+    if (savedPlayers is! List) return;
+    final seats = <PlayerColor, bool>{};
+    for (final entry in savedPlayers) {
+      final data = Map<String, dynamic>.from(entry as Map);
+      final color = PlayerColor.values.firstWhere(
+        (value) => value.name == data['color'],
+      );
+      seats[color] = data['isAI'] == true;
+    }
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => GameScreen(
+          seats: seats,
+          use3DBoard: widget.use3DBoard,
+          aiDifficulty: _aiDifficulty,
+          soundEnabled: _soundEnabled,
+          languageCode: widget.languageCode,
+          resumeData: saved,
+        ),
+      ),
+    ).then((_) => _loadLocalData());
+  }
+
   void _startGame() {
     final seats = <PlayerColor, bool>{};
     seatState.forEach((color, isAI) {
       if (isAI != null) seats[color] = isAI;
     });
     Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => GameScreen(seats: seats)),
-    );
+      MaterialPageRoute(
+        builder: (_) => GameScreen(
+          seats: seats,
+          use3DBoard: widget.use3DBoard,
+          aiDifficulty: _aiDifficulty,
+          soundEnabled: _soundEnabled,
+          languageCode: widget.languageCode,
+        ),
+      ),
+    ).then((_) => _loadLocalData());
   }
 }
 

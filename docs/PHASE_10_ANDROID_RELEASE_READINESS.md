@@ -1,0 +1,65 @@
+# Phase 10 — Android Release Readiness Audit
+
+Date: 2026-11-10
+Branch: `feat/3d-board-animations-phase-03-04-20261110`
+Audit type: source/configuration review and one previously authorized debug build attempt; no build in this phase.
+
+## Verified repository configuration
+- Flutter CI: 3.44.9
+- Java: 17
+- Android Gradle Plugin: 8.11.1
+- Kotlin Android plugin: 2.2.20
+- Gradle wrapper: 8.14.3
+- Compile SDK: 36
+- Build Tools (CI preflight): 35.0.0
+- NDK: 28.2.13676358
+- CMake: 3.31.4
+- Target SDK: 34
+- Minimum SDK: 21
+- Android manifest label: `لودو`
+
+AGP 8.11 requires Gradle 8.13+ and JDK 17, and supports up to API 36. The configured wrapper and Java satisfy those version requirements.
+
+## Phase 10 execution status
+The only authorized debug APK build attempt failed at `:flutter_angle:configureCMakeDebug[arm64-v8a]` because CMake 3.31.4 was missing from the runner. The same attempt reported a compile SDK 36 requirement from `shared_preferences_android`; compile SDK was raised to 36 afterward.
+
+The CI workflow now explicitly installs and verifies Android platform 36, Build Tools 35.0.0, NDK 28.2.13676358, CMake 3.31.4, and platform-tools. All Android build/artifact jobs have been removed from CI so the consumed one-time build cannot run accidentally.
+
+## Remaining release blockers
+1. Android namespace and application ID remain `com.example.ludo_game`. A permanent package ID requires a separate user decision.
+2. Release build type still uses `signingConfigs.debug`. A protected production keystore and secret-handling design are required.
+3. Target SDK remains 34. Confirm the current Play policy and choose the final target before release.
+4. Launcher icon still uses the Android platform default; a designed launcher/adaptive icon is outstanding.
+5. The CMake/NDK/SDK provisioning correction has not yet been confirmed by a subsequent CI run.
+6. The Android Gradle configuration, native compilation, APK packaging, and device runtime remain unverified.
+7. No APK/AAB was produced or uploaded. No physical-device acceptance test has been performed.
+
+## Result
+**SOURCE AUDIT COMPLETED — NOT RELEASE READY.** CI toolchain provisioning has been hardened, but until a non-build CI run confirms SDK installation and a separately authorized build succeeds, Android packaging remains unverified. The single prior build authorization remains consumed.
+
+
+## Follow-up CI result — 2026-11-10
+
+The first SDK-preflight run failed before package installation because `android-actions/setup-android@v3` requested the obsolete SDK package `tools`. The workflow was corrected to use the Android command-line SDK manager already present on the hosted Ubuntu runner, then explicitly install and verify the pinned SDK/NDK/CMake components. The correction is committed as `b6bf7ec398922dc0f4cd5373eb1174ca9cb98761`.
+
+The next non-build CI run must pass SDK provisioning, dependency resolution, analysis and tests. Android packaging and device execution remain unverified.
+
+## Follow-up CI failure: SDK license pipeline (2026-11-10)
+
+Runs `42780479279` and `42780483585` failed after `sdkmanager --licenses` had printed `All SDK package licenses accepted`. The failure was the `yes` producer's expected SIGPIPE being promoted to a pipeline failure by `pipefail`; the sdkmanager exit code is now checked independently. The correction is committed as `31dea195c8058eed8ea5aec7675083fbbf3a8250`.
+
+The next validation run must still confirm SDK package installation, dependency resolution, analysis, and tests. Android packaging/native compilation and device runtime remain unverified.
+
+## Evidence correction — successful one-time debug build and device result
+
+The earlier build-failure narrative above describes the first, unsuccessful attempt and is superseded by the later authorized one-time build:
+
+- Successful debug APK build and artifact upload: [42781991508](https://github.com/aliabinyahya-max/ludo_game/actions/runs/42781991508).
+- The user confirmed that the APK was installed on a physical Android phone.
+- The app launches and the main menu is visible according to the user's device report.
+- Starting a match currently produces a blank board area. The user supplied screenshots showing the match app bar and back control without visible board content.
+- A source-level timeout/error fallback to the existing 2D board has been added. It has passed PR validation, but is not yet verified on the phone.
+- No further build is authorized. Current and subsequent CI workflows are validation-only and must not build APK/AAB artifacts.
+
+The release blockers remain: physical-device gameplay acceptance, renderer/fallback device verification, permanent application ID, production signing, target-SDK policy review, and approved launcher branding.
+

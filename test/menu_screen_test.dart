@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ludo_game/app_theme.dart';
 import 'package:ludo_game/game_screen.dart';
 import 'package:ludo_game/main.dart' as app;
@@ -9,7 +10,11 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('Premium menu and player configuration', () {
+    setUp(() {
+      SharedPreferences.setMockInitialValues({});
+    });
     testWidgets('app shell enforces Arabic right-to-left direction', (tester) async {
+      SharedPreferences.setMockInitialValues({});
       await tester.pumpWidget(const app.LudoApp());
       final menuContext = tester.element(find.byType(MenuScreen));
       expect(Directionality.of(menuContext), TextDirection.rtl);
@@ -17,7 +22,7 @@ void main() {
 
     testWidgets('uses the premium dark visual system', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(theme: LudoTheme.dark, home: const MenuScreen()),
+        MaterialApp(theme: LudoTheme.dark, home: const MenuScreen(use3DBoard: false)),
       );
       expect(find.text('PREMIUM'), findsOneWidget);
       expect(find.text('مستعد للتحدي؟'), findsOneWidget);
@@ -28,10 +33,11 @@ void main() {
     });
 
     testWidgets('requires at least two active seats and one human', (tester) async {
-      await tester.pumpWidget(const MaterialApp(home: MenuScreen()));
+      await tester.pumpWidget(const MaterialApp(home: MenuScreen(use3DBoard: false)));
       final start = find.widgetWithText(ElevatedButton, 'ابدأ المباراة');
       expect(tester.widget<ElevatedButton>(start).onPressed, isNotNull);
 
+      await tester.ensureVisible(find.byKey(const ValueKey('seat-green')));
       await tester.tap(find.byKey(const ValueKey('seat-green')));
       await tester.pump();
       expect(tester.widget<ElevatedButton>(start).onPressed, isNull);
@@ -42,7 +48,7 @@ void main() {
     });
 
     testWidgets('starts a match with configured human and AI seats', (tester) async {
-      await tester.pumpWidget(const MaterialApp(home: MenuScreen()));
+      await tester.pumpWidget(const MaterialApp(home: MenuScreen(use3DBoard: false)));
       final start = find.text('ابدأ المباراة');
       await tester.ensureVisible(start);
       await tester.tap(start);
@@ -57,11 +63,12 @@ void main() {
     });
 
     testWidgets('cycles a seat through human, AI, and empty states', (tester) async {
-      await tester.pumpWidget(const MaterialApp(home: MenuScreen()));
+      await tester.pumpWidget(const MaterialApp(home: MenuScreen(use3DBoard: false)));
       expect(find.text('بشري'), findsOneWidget);
       expect(find.text('كمبيوتر'), findsOneWidget);
       expect(find.text('مقعد فارغ'), findsNWidgets(2));
 
+      await tester.ensureVisible(find.byKey(const ValueKey('seat-red')));
       await tester.tap(find.byKey(const ValueKey('seat-red')));
       await tester.pump();
       expect(find.text('كمبيوتر'), findsNWidgets(2));
@@ -76,7 +83,7 @@ void main() {
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
-      await tester.pumpWidget(const MaterialApp(home: MenuScreen()));
+      await tester.pumpWidget(const MaterialApp(home: MenuScreen(use3DBoard: false)));
       expect(tester.takeException(), isNull);
       expect(find.text('ابدأ المباراة'), findsOneWidget);
     });
