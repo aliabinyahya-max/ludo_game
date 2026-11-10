@@ -369,4 +369,39 @@ void main() {
     });
   });
 
+
+  group('LudoEngine roster invariants', () {
+    test('rejects fewer than two players', () {
+      final red = LudoPlayer(color: PlayerColor.red, isAI: false);
+      expect(() => LudoEngine([red]), throwsArgumentError);
+    });
+
+    test('rejects more than four players', () {
+      final players = PlayerColor.values
+          .map((color) => LudoPlayer(color: color, isAI: false))
+          .toList()
+        ..add(LudoPlayer(color: PlayerColor.red, isAI: true));
+      expect(() => LudoEngine(players), throwsArgumentError);
+    });
+
+    test('rejects duplicate player colors', () {
+      final redOne = LudoPlayer(color: PlayerColor.red, isAI: false);
+      final redTwo = LudoPlayer(color: PlayerColor.red, isAI: true);
+      expect(() => LudoEngine([redOne, redTwo]), throwsArgumentError);
+    });
+
+    test('rejects a token that does not belong to this match', () {
+      final red = LudoPlayer(color: PlayerColor.red, isAI: false);
+      final green = LudoPlayer(color: PlayerColor.green, isAI: false);
+      final engine = LudoEngine([red, green]);
+      final externalRedToken = LudoToken(color: PlayerColor.red, id: 0);
+
+      expect(engine.canMoveToken(externalRedToken, 6), isFalse);
+      expect(
+        () => engine.applyMove(externalRedToken, 6),
+        throwsStateError,
+      );
+    });
+  });
+
 }
