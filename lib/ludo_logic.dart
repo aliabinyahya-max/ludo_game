@@ -52,7 +52,24 @@ class LudoEngine {
   final List<LudoPlayer> players;
   final Random _rng = Random();
 
-  LudoEngine(this.players);
+  LudoEngine(this.players) {
+    if (players.length < 2 || players.length > 4) {
+      throw ArgumentError.value(
+        players.length,
+        'players.length',
+        'A Ludo match requires between two and four players.',
+      );
+    }
+
+    final colors = players.map((player) => player.color).toSet();
+    if (colors.length != players.length) {
+      throw ArgumentError.value(
+        players,
+        'players',
+        'Each player must have a unique color.',
+      );
+    }
+  }
 
   LudoPlayer playerOf(PlayerColor color) {
     return players.firstWhere((player) => player.color == color);
