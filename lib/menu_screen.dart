@@ -279,10 +279,10 @@ class _MenuScreenState extends State<MenuScreen> {
             child: const Icon(Icons.emoji_events_rounded, color: LudoTheme.gold, size: 25),
           ),
           const SizedBox(height: 17),
-          Text('مستعد للتحدي؟', style: Theme.of(context).textTheme.headlineMedium),
+          Text(_text('مستعد للتحدي؟', 'Ready for the challenge?'), style: Theme.of(context).textTheme.headlineMedium),
           const SizedBox(height: 7),
           Text(
-            'جهّز مقاعد اللاعبين وابدأ جولة لودو مع الأصدقاء أو الكمبيوتر.',
+            _text('جهّز مقاعد اللاعبين وابدأ جولة لودو مع الأصدقاء أو الكمبيوتر.', 'Set up the players and start a Ludo match with friends or the computer.'),
             style: Theme.of(context).textTheme.bodyMedium,
           ),
           const SizedBox(height: 18),
@@ -290,8 +290,8 @@ class _MenuScreenState extends State<MenuScreen> {
             spacing: 8,
             runSpacing: 8,
             children: [
-              _FeaturePill(icon: Icons.groups_rounded, label: '2–4 لاعبين'),
-              _FeaturePill(icon: Icons.wifi_off_rounded, label: 'بدون إنترنت'),
+              _FeaturePill(icon: Icons.groups_rounded, label: _text('2–4 لاعبين', '2–4 players')),
+              _FeaturePill(icon: Icons.wifi_off_rounded, label: _text('بدون إنترنت', 'Offline')),
             ],
           ),
         ],
