@@ -280,4 +280,93 @@ void main() {
     });
   });
 
+
+  group('LudoEngine player-approved turn and safe-cell rules', () {
+    late LudoPlayer red;
+    late LudoPlayer green;
+    late LudoPlayer yellow;
+    late LudoEngine engine;
+
+    setUp(() {
+      red = LudoPlayer(color: PlayerColor.red, isAI: false);
+      green = LudoPlayer(color: PlayerColor.green, isAI: false);
+      yellow = LudoPlayer(color: PlayerColor.yellow, isAI: false);
+      engine = LudoEngine([red, green, yellow]);
+    });
+
+    test('a player may pass through their own two-token block', () {
+      placeOnGlobalCell(red.tokens[0], 0);
+      placeOnGlobalCell(red.tokens[1], 1);
+      placeOnGlobalCell(red.tokens[2], 1);
+
+      expect(engine.isBlockAtGlobalCell(1), isTrue);
+      expect(engine.crossesOpponentBlock(red.tokens[0], 2), isFalse);
+      expect(engine.canMoveToken(red.tokens[0], 2), isTrue);
+    });
+
+    test('different-color tokens remain together on a safe cell', () {
+      red.tokens[0].step = 7; // Destination is safe global cell 8.
+      placeOnGlobalCell(green.tokens[0], 8);
+      placeOnGlobalCell(yellow.tokens[0], 8);
+
+      final result = engine.applyMove(red.tokens[0], 1);
+
+      expect(result.captured, isEmpty);
+      expect(red.tokens[0].globalPathIndex, 8);
+      expect(green.tokens[0].globalPathIndex, 8);
+      expect(yellow.tokens[0].globalPathIndex, 8);
+    });
+  });
+
+  group('LudoTurnTracker', () {
+    late LudoTurnTracker tracker;
+
+    setUp(() {
+      tracker = LudoTurnTracker();
+    });
+
+    test('the first and second consecutive sixes retain the turn', () {
+      expect(tracker.registerRoll(6), isFalse);
+      expect(tracker.consecutiveSixes, 1);
+      expect(tracker.registerRoll(6), isFalse);
+      expect(tracker.consecutiveSixes, 2);
+    });
+
+    test('the third consecutive six cancels the turn and resets the count', () {
+      expect(tracker.registerRoll(6), isFalse);
+      expect(tracker.registerRoll(6), isFalse);
+      expect(tracker.registerRoll(6), isTrue);
+      expect(tracker.consecutiveSixes, 0);
+    });
+
+    test('a non-six breaks the consecutive-six sequence', () {
+      expect(tracker.registerRoll(6), isFalse);
+      expect(tracker.registerRoll(6), isFalse);
+      expect(tracker.registerRoll(4), isFalse);
+      expect(tracker.consecutiveSixes, 0);
+      expect(tracker.registerRoll(6), isFalse);
+    });
+
+    test('a capture grants an extra roll even when dice is not six', () {
+      expect(
+        tracker.grantsExtraRoll(dice: 3, captured: true),
+        isTrue,
+      );
+    });
+
+    test('a six grants an extra roll without a capture', () {
+      expect(
+        tracker.grantsExtraRoll(dice: 6, captured: false),
+        isTrue,
+      );
+    });
+
+    test('an ordinary move without a capture does not grant an extra roll', () {
+      expect(
+        tracker.grantsExtraRoll(dice: 4, captured: false),
+        isFalse,
+      );
+    });
+  });
+
 }
