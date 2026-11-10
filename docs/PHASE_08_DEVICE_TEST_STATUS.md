@@ -1,30 +1,29 @@
-# Phase 08 — Android Device Test Status
+# Phase 08 — Physical Device Test Status
 
 Date: 2026-11-10
 Branch: `feat/3d-board-animations-phase-03-04-20261110`
 
 ## Status
-**BLOCKED — physical-device execution not performed.**
+**BLOCKED — no installable APK was produced.**
 
-The user explicitly restricted execution to fixing the Android build configuration without performing an actual APK/AAB build. The current GitHub Actions workflow is validation-only and runs dependency resolution, static analysis, and Flutter tests. It does not package an installable app.
+The user authorized exactly one Android build. That single debug build was attempted in GitHub Actions run [42776828452](https://github.com/aliabinyahya-max/ludo_game/actions/runs/42776828452) and failed before artifact upload.
 
-## What is verified
-- Android Gradle Plugin: 8.11.1
-- Kotlin Android plugin: 2.2.20
-- Gradle wrapper: 8.14.3
-- CI Java: 17
-- CI Flutter: 3.44.9
-- Validation runs 42739521519 and 42739515494 completed successfully.
-- The workflow contains no Android APK/AAB build step.
+## Build failure evidence
+- Gradle task: `:flutter_angle:configureCMakeDebug[arm64-v8a]`
+- Failure: CMake `3.31.4` was not found in the Android SDK, PATH, or `cmake.dir`.
+- Additional plugin compatibility warning: `shared_preferences_android` requires compile SDK 36; project compile SDK was 35 at the time.
+- Source follow-up: compile SDK raised to 36 and the workflow now provisions CMake 3.31.4 before the build step.
+- These follow-up changes have not been compiled because the one-build authorization was consumed.
 
-## What is not verified
-- Android native compilation and APK packaging after the toolchain change.
-- Installation or launch on an emulator or physical device.
-- ThreeJS GPU rendering, touch coordinate mapping, frame rate, thermal behavior, and stability.
-- End-to-end gameplay on a real Android runtime.
+## Physical test matrix — not executed
+- Install and first launch on a physical Android device.
+- 2-, 3-, and 4-player Pass & Play.
+- All four AI levels and tactical decisions.
+- 3D board rendering, touch selection, animation smoothness, GPU stability, and 2D fallback.
+- Sound on/off, Arabic/English, and all three themes.
+- Save a match, force-close, relaunch, and resume at the correct turn.
+- Complete a match and verify winner, capture count, duration, and history.
+- Background/foreground, rotation, memory pressure, and crash-free session.
 
-## Required future evidence
-After separate explicit authorization for an installable build: record device model, Android version, commit SHA, app version, scenario results, screenshots or recordings, and logs for any failure.
-
-## Stage result
-**BLOCKED BY AUTHORIZATION BOUNDARY.** This is not a test failure and must not be counted as a pass. Continue with source-level and non-build validation only.
+## Acceptance rule
+Do not mark Phase 08 complete without a successful APK artifact and recorded physical-device results. No second build was attempted or authorized.
