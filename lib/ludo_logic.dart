@@ -167,6 +167,16 @@ class LudoEngine {
 
   /// Checks whether [token] can legally move with [dice].
   bool canMoveToken(LudoToken token, int dice) {
+    // A token must be one of the actual objects owned by this match.
+    // Matching only color/id is insufficient because external token objects
+    // could otherwise be moved and mutated outside the registered roster.
+    final belongsToMatch = players.any(
+      (player) => player.tokens.any((ownedToken) => identical(ownedToken, token)),
+    );
+    if (!belongsToMatch) {
+      return false;
+    }
+
     if (dice < 1 || dice > 6) {
       return false;
     }
