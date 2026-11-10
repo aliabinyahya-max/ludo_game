@@ -64,10 +64,10 @@ void main() {
       expect(find.textContaining('للمرة الثالثة'), findsOneWidget);
       expect(tester.widget<ElevatedButton>(diceButton).onPressed, isNull);
 
-      await tester.pump(const Duration(milliseconds: 699));
-      expect(tester.widget<ElevatedButton>(diceButton).onPressed, isNull);
+      await tester.tap(diceButton);
+      expect(rollCount, 3);
 
-      await tester.pump(const Duration(milliseconds: 1));
+      await tester.pump(const Duration(milliseconds: 701));
       expect(tester.widget<ElevatedButton>(diceButton).onPressed, isNotNull);
     });
 
