@@ -50,3 +50,11 @@ The first SDK-preflight workflow run failed inside `android-actions/setup-androi
 Correction: removed that setup action and now locate/use the Android command-line SDK manager already provisioned on GitHub-hosted Ubuntu runners. The workflow checks the sdkmanager executable and version before installing/verifying the pinned SDK platform, Build Tools, NDK and CMake packages. This remains a non-build workflow; no Gradle task or APK/AAB packaging is invoked.
 
 Correction commit: `b6bf7ec398922dc0f4cd5373eb1174ca9cb98761`. Await the subsequent CI result before declaring the phase verified.
+
+## Follow-up CI failure: license pipeline SIGPIPE (2026-11-10)
+
+Runs `42780479279` and `42780483585` both reached `sdkmanager --licenses`, printed `All SDK package licenses accepted`, then failed with `yes: standard output: Broken pipe` (exit code 1). The root cause was `set -o pipefail`: `sdkmanager` closed its input after accepting the licenses, so the `yes` producer received SIGPIPE and caused the pipeline to be marked failed even though the SDK manager operation succeeded.
+
+The workflow now disables `pipefail` only around the license pipeline, captures `${PIPESTATUS[1]}` immediately, checks the actual sdkmanager exit code, and restores `pipefail` before package installation and verification. This preserves real SDK manager failures while ignoring the expected producer-side SIGPIPE. Fix commit: `31dea195c8058eed8ea5aec7675083fbbf3a8250`.
+
+Validation is pending on a fresh workflow run. The workflow remains preflight-only and contains no Gradle, APK, or AAB build step.
