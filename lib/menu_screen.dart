@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'app_theme.dart';
 import 'game_screen.dart';
+import 'ludo_logic.dart';
 import 'ludo_data.dart';
 
 class MenuScreen extends StatefulWidget {
@@ -15,6 +16,8 @@ class MenuScreen extends StatefulWidget {
 
 class _MenuScreenState extends State<MenuScreen> {
   // null = empty seat, false = human, true = computer.
+  AIDifficulty _aiDifficulty = AIDifficulty.medium;
+
   final Map<PlayerColor, bool?> seatState = {
     PlayerColor.red: false,
     PlayerColor.green: true,
@@ -33,6 +36,19 @@ class _MenuScreenState extends State<MenuScreen> {
         seatState[color] = null;
       }
     });
+  }
+
+  String _difficultyLabel(AIDifficulty level) {
+    switch (level) {
+      case AIDifficulty.easy:
+        return 'سهل';
+      case AIDifficulty.medium:
+        return 'متوسط';
+      case AIDifficulty.hard:
+        return 'صعب';
+      case AIDifficulty.expert:
+        return 'خبير';
+    }
   }
 
   String _seatLabel(bool? value) {
@@ -71,6 +87,25 @@ class _MenuScreenState extends State<MenuScreen> {
                       _buildSectionHeader(
                         title: 'تجهيز المباراة',
                         subtitle: 'اختر من سيشارك في اللعب',
+                      ),
+                      const SizedBox(height: 14),
+                      DropdownButtonFormField<AIDifficulty>(
+                        initialValue: _aiDifficulty,
+                        decoration: const InputDecoration(
+                          labelText: 'مستوى ذكاء الكمبيوتر',
+                          border: OutlineInputBorder(),
+                        ),
+                        items: AIDifficulty.values
+                            .map((level) => DropdownMenuItem(
+                                  value: level,
+                                  child: Text(_difficultyLabel(level)),
+                                ))
+                            .toList(),
+                        onChanged: (level) {
+                          if (level != null) {
+                            setState(() => _aiDifficulty = level);
+                          }
+                        },
                       ),
                       const SizedBox(height: 14),
                       ...PlayerColor.values.map(_buildSeatCard),
@@ -329,7 +364,11 @@ class _MenuScreenState extends State<MenuScreen> {
     });
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => GameScreen(seats: seats, use3DBoard: widget.use3DBoard),
+        builder: (_) => GameScreen(
+          seats: seats,
+          use3DBoard: widget.use3DBoard,
+          aiDifficulty: _aiDifficulty,
+        ),
       ),
     );
   }
