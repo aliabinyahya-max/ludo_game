@@ -82,4 +82,37 @@ abstract final class LudoTheme {
       ),
     );
   }
+  static ThemeData forName(String name) {
+    final seed = switch (name) {
+      'royal' => const Color(0xFF7956C8),
+      'ocean' => const Color(0xFF168AAD),
+      _ => emerald,
+    };
+    final base = dark;
+    final scheme = ColorScheme.fromSeed(
+      seedColor: seed,
+      brightness: Brightness.dark,
+      surface: surface,
+      secondary: gold,
+    );
+    return base.copyWith(
+      colorScheme: scheme,
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: scheme.primary,
+          foregroundColor: Colors.white,
+          disabledBackgroundColor: surfaceElevated,
+          disabledForegroundColor: textSecondary,
+          elevation: 0,
+          minimumSize: const Size.fromHeight(56),
+          padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+          ),
+          textStyle: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
+        ),
+      ),
+    );
+  }
+
 }
