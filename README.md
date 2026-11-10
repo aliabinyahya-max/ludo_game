@@ -26,44 +26,32 @@
 - يجب الوصول إلى البيت بالعدد الدقيق؛ لا يسمح بتجاوز خانة النهاية.
 - يفوز أول لاعب يوصل قطعه الأربع إلى البيت.
 
-## التشغيل محلياً
-1. افتح مجلد المشروع في Android Studio أو VS Code.
-2. تأكد من تثبيت Flutter SDK وJava 17.
-3. نفّذ:
-   ```bash
-   flutter pub get
-   flutter analyze
-   flutter test
-   ```
-4. لتشغيل نسخة التطوير على محاكي أو جهاز موصول:
-   ```bash
-   flutter run
-   ```
+## التحقق البرمجي
+التحقق الآلي الأخير قبل محاولة بناء Android:
+- `flutter analyze`: لا توجد مشكلات.
+- `flutter test`: 55 اختباراً ناجحاً.
+- `flutter pub get`: ناجح.
 
-## هيكلة المشروع
-```
-lib/
-  main.dart                 تشغيل التطبيق وإعداد اللغة والثيم
-  app_theme.dart            أنماط الألوان
-  menu_screen.dart          إعداد المباراة واللاعبين والإعدادات
-  game_screen.dart          تدفق المباراة والحركات والحفظ
-  ludo_board.dart           لوحة 2D الاحتياطية
-  ludo_board_3d.dart        لوحة ThreeJS ثلاثية الأبعاد
-  ludo_logic.dart            قواعد اللعب ومستويات الذكاء الاصطناعي
-  ludo_models.dart           نماذج اللاعبين والقطع
-  ludo_data.dart             مسارات اللوحة والخانات الآمنة
-  local_game_store.dart      الحفظ المحلي والإحصائيات والتفضيلات
-```
-
-## حالة Android
-- إعدادات Gradle وJava/Kotlin محدثة في فرع التطوير.
-- معرّف التطبيق ما زال `com.example.ludo_game` ويحتاج اعتماد معرّف نهائي.
-- توقيع Release ما زال Debug signing؛ غير جاهز للتوزيع الرسمي.
+## حالة Android الحالية
+- تم استهلاك إذن البناء الوحيد في محاولة APK تجريبي.
+- فشلت المحاولة بسبب عدم توفر CMake 3.31.4 المطلوب لمكوّن `flutter_angle`.
+- تم رفع compile SDK إلى 36 وإضافة تثبيت CMake 3.31.4 إلى خطوة البناء المستقبلية، دون إعادة بناء.
+- لم ينتج APK ولم يرفع أي ملف تثبيت؛ لذلك لم يبدأ اختبار الجهاز الفعلي.
+- معرّف التطبيق ما زال `com.example.ludo_game`.
+- توقيع Release ما زال Debug signing.
 - أيقونة التطبيق النهائية واختبار الجهاز الفعلي ما زالا مطلوبين.
-- البناء لم يُنفذ بعد؛ إذن المستخدم يسمح ببناء واحد فقط وسيُحجز لنسخة اختبار الجهاز.
 
 ## التقارير
 - `docs/PHASE_03_04_3D_BOARD_AND_ANIMATIONS.md`
+- `docs/PHASE_08_DEVICE_TEST_STATUS.md`
 - `docs/PHASE_09_FINDINGS_FIXES.md`
 - `docs/PHASE_10_ANDROID_RELEASE_READINESS.md`
 - `docs/FEATURES_IMPLEMENTATION_STATUS.md`
+
+## التشغيل المحلي للتطوير
+بعد تجهيز بيئة Flutter وAndroid SDK المناسبة:
+```bash
+flutter pub get
+flutter analyze
+flutter test
+```
