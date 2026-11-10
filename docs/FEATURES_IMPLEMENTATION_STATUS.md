@@ -55,3 +55,9 @@ Validated source commit: `2586eff14411890ef792a9b887f38f50a547dbe9`
 - Physical Android testing is blocked because no APK was produced.
 - 3D rendering, GPU stability, touch, sound, save/resume and match completion still need device acceptance.
 - Package ID, production signing, launcher icon and final target-SDK policy remain release blockers.
+
+## Post-build-failure source validation
+- Follow-up CI run: [42777651295](https://github.com/aliabinyahya-max/ludo_game/actions/runs/42777651295)
+- `flutter analyze`: no issues found.
+- `flutter test`: **55 tests passed**.
+- Build job was skipped by design; the one-time build authorization remains consumed.
