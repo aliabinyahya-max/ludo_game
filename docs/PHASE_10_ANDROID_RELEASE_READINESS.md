@@ -36,3 +36,10 @@ The CI workflow now explicitly installs and verifies Android platform 36, Build 
 
 ## Result
 **SOURCE AUDIT COMPLETED — NOT RELEASE READY.** CI toolchain provisioning has been hardened, but until a non-build CI run confirms SDK installation and a separately authorized build succeeds, Android packaging remains unverified. The single prior build authorization remains consumed.
+
+
+## Follow-up CI result — 2026-11-10
+
+The first SDK-preflight run failed before package installation because `android-actions/setup-android@v3` requested the obsolete SDK package `tools`. The workflow was corrected to use the Android command-line SDK manager already present on the hosted Ubuntu runner, then explicitly install and verify the pinned SDK/NDK/CMake components. The correction is committed as `b6bf7ec398922dc0f4cd5373eb1174ca9cb98761`.
+
+The next non-build CI run must pass SDK provisioning, dependency resolution, analysis and tests. Android packaging and device execution remain unverified.
