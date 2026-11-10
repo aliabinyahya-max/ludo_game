@@ -9,7 +9,9 @@ class GameScreen extends StatefulWidget {
   /// Map of color -> isAI. Colors not present are not in the game.
   final Map<PlayerColor, bool> seats;
 
-  const GameScreen({super.key, required this.seats});
+  final int Function()? diceRoller;
+
+  const GameScreen({super.key, required this.seats, this.diceRoller});
 
   @override
   State<GameScreen> createState() => _GameScreenState();
@@ -23,6 +25,7 @@ class _GameScreenState extends State<GameScreen> {
   int? lastDice;
   List<LudoToken> movable = [];
   bool rolling = false;
+  bool turnTransitioning = false;
   bool gameOver = false;
   String message = '';
 
@@ -44,6 +47,8 @@ class _GameScreenState extends State<GameScreen> {
     setState(() {
       lastDice = null;
       movable = [];
+      rolling = false;
+      turnTransitioning = false;
       if (!extraTurn) {
         currentPlayerIndex = (currentPlayerIndex + 1) % players.length;
         turnTracker.reset();
@@ -64,15 +69,16 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   void _roll() {
-    if (rolling || gameOver) return;
+    if (rolling || turnTransitioning || gameOver) return;
     setState(() => rolling = true);
     Future.delayed(const Duration(milliseconds: 350), () {
       if (!mounted) return;
-      final dice = engine.rollDice();
+      final dice = widget.diceRoller?.call() ?? engine.rollDice();
       final turnCancelled = turnTracker.registerRoll(dice);
       if (turnCancelled) {
         setState(() {
           rolling = false;
+          turnTransitioning = true;
           lastDice = null;
           movable = [];
           message = '${currentPlayer.color.label} رمى 6 للمرة الثالثة — تم إلغاء الدور';
@@ -174,7 +180,7 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   void _onTokenTap(LudoToken token) {
-    if (currentPlayer.isAI || lastDice == null) return;
+    if (currentPlayer.isAI || lastDice == null || turnTransitioning) return;
     if (!movable.contains(token)) return;
     _performMove(token, lastDice!);
   }
@@ -251,7 +257,8 @@ class _GameScreenState extends State<GameScreen> {
                     onPressed: (!gameOver &&
                             !currentPlayer.isAI &&
                             lastDice == null &&
-                            !rolling)
+                            !rolling &&
+                            !turnTransitioning)
                         ? _roll
                         : null,
                     icon: const Icon(Icons.casino),
