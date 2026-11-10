@@ -34,24 +34,44 @@ jobs:
           channel: stable
           cache: true
 
-      - name: Set up Android SDK command-line tools
-        uses: android-actions/setup-android@v3
+      # GitHub-hosted Ubuntu runners already include Android command-line tools.
+      # Avoid android-actions/setup-android@v3 here: its legacy "tools" package
+      # request fails because that obsolete SDK package is no longer published.
+      - name: Locate preinstalled Android SDK manager
+        id: android_sdk
+        shell: bash
+        run: |
+          set -euo pipefail
+          if command -v sdkmanager >/dev/null 2>&1; then
+            SDKMANAGER="$(command -v sdkmanager)"
+          elif [ -n "${ANDROID_HOME:-}" ] && [ -x "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" ]; then
+            SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          elif [ -n "${ANDROID_SDK_ROOT:-}" ] && [ -x "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" ]; then
+            SDKMANAGER="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
+          else
+            echo "::error::Android sdkmanager is not available on this runner"
+            exit 1
+          fi
+          echo "sdkmanager=$SDKMANAGER" >> "$GITHUB_OUTPUT"
+          "$SDKMANAGER" --version
 
       # Provision and verify the exact native toolchain required by android/app/build.gradle.
       # This is SDK preparation only: no Gradle task, APK, AAB, or app build is run.
       - name: Install and verify Android SDK components
         shell: bash
+        env:
+          SDKMANAGER: ${{ steps.android_sdk.outputs.sdkmanager }}
         run: |
           set -euo pipefail
-          yes | sdkmanager --licenses
-          sdkmanager --install \
+          yes | "$SDKMANAGER" --licenses
+          "$SDKMANAGER" --install \
             "platform-tools" \
             "platforms;android-36" \
             "build-tools;35.0.0" \
             "ndk;28.2.13676358" \
             "cmake;3.31.4"
 
-          installed="$(sdkmanager --list_installed)"
+          installed="$("$SDKMANAGER" --list_installed)"
           for package in \
             "platform-tools" \
             "platforms;android-36" \
