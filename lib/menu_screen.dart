@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import 'app_theme.dart';
-import 'app_strings.dart';
 import 'game_screen.dart';
 import 'ludo_logic.dart';
 import 'local_game_store.dart';
